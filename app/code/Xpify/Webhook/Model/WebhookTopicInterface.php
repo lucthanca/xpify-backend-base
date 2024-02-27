@@ -31,4 +31,18 @@ interface WebhookTopicInterface
      * @return IHandler The handler of the webhook
      */
     public function getHandler(): IHandler;
+
+    /**
+     * Get fields to include in the webhook payload
+     */
+    public function getIncludeFields(): array;
+
+    /**
+     * Get the app name
+     * Which app is this webhook should be registered to
+     * if null, it will be registered to all apps
+     *
+     * @return string|null
+     */
+    public function getAppName(): ?string;
 }
