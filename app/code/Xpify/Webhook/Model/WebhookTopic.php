@@ -8,6 +8,7 @@ use Xpify\Webhook\Model\WebhookTopicInterface as IWebhookTopic;
 
 class WebhookTopic implements IWebhookTopic
 {
+    private ?string $topicForStorage = null;
     /**
      * @var string
      */
@@ -24,6 +25,7 @@ class WebhookTopic implements IWebhookTopic
     protected array $includeFields = [];
 
     protected ?string $appName;
+    protected array $metafieldNamespaces = [];
 
     /**
      * WebhookTopic constructor.
@@ -33,12 +35,15 @@ class WebhookTopic implements IWebhookTopic
      * @param string|null $appName
      * @param array $includeFields
      */
-    public function __construct(string $topic, IHandler $handler, ?string $appName = null, array $includeFields = [])
+    public function __construct(string $topic, IHandler $handler, ?string $appName = null, array $includeFields = [], array $metafieldNamespaces = [])
     {
         $this->topic = $topic;
         $this->handler = $handler;
+        sort($includeFields);
         $this->includeFields = $includeFields;
         $this->appName = $appName;
+        sort($metafieldNamespaces);
+        $this->metafieldNamespaces = $metafieldNamespaces;
     }
 
     /**
@@ -47,6 +52,19 @@ class WebhookTopic implements IWebhookTopic
     public function getTopic(): string
     {
         return $this->topic;
+    }
+
+    /**
+     * Replace / or . with _ by using this pattern /\/|\./g and make it uppercase
+     *
+     * @return string
+     */
+    public function topicForStorage(): string
+    {
+        if (!$this->topicForStorage) {
+            $this->topicForStorage = strtoupper(preg_replace('/\/|\./', '_', $this->getTopic()));
+        }
+        return $this->topicForStorage;
     }
 
     /**
@@ -63,6 +81,14 @@ class WebhookTopic implements IWebhookTopic
     public function getIncludeFields(): array
     {
         return $this->includeFields;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getMetafieldNamespaces(): array
+    {
+        return $this->metafieldNamespaces;
     }
 
     /**

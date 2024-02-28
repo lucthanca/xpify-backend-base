@@ -33,9 +33,14 @@ interface WebhookTopicInterface
     public function getHandler(): IHandler;
 
     /**
-     * Get fields to include in the webhook payload
+     * An optional array of top-level resource fields that should be serialized and sent in the webhook message. If null, then all fields will be sent.
      */
     public function getIncludeFields(): array;
+
+    /**
+     * Optional array of namespaces for any metafields that should be included in the webhook subscription.
+     */
+    public function getMetafieldNamespaces(): array;
 
     /**
      * Get the app name

@@ -59,8 +59,7 @@ class Callback implements HttpGetActionInterface
             ['Xpify\Auth\Service\CookieHandler', 'saveShopifyCookie'],
         );
         $host = $this->getRequest()->getParam('host');
-        $shop = Utils::sanitizeShopDomain($this->getRequest()->getParam('shop'));
-        $this->webhookManager->register(Topics::APP_UNINSTALLED, $shop, $session->getAccessToken(), $app);
+        $this->webhookManager->register($session->getId(), $app);
         $redirectUrl = Utils::getEmbeddedAppUrl($host);
         list($shouldPayment, $payUrl) = $this->billing->check($session);
         if ($shouldPayment) {

@@ -8,6 +8,8 @@ use Magento\Framework\App\RequestInterface as IRequest;
 use Shopify\Clients\HttpHeaders;
 use Shopify\Exception\InvalidWebhookException;
 use Shopify\Exception\ShopifyException;
+use Shopify\Exception\WebhookRegistrationException;
+use Shopify\Webhooks\Delivery\HttpDelivery;
 use Shopify\Webhooks\Registry;
 use Xpify\App\Api\AppRepositoryInterface as IAppRepository;
 use Xpify\App\Api\Data\AppInterface as IApp;
@@ -71,7 +73,7 @@ class Webhook
      * @return bool
      * @deprecated
      */
-    public function register(string $topic, string $merchantDomain, string $accessToken, IApp $app): bool
+    public function registerV1(string $topic, string $merchantDomain, string $accessToken, IApp $app): bool
     {
         $shop = $merchantDomain;
 
@@ -88,9 +90,18 @@ class Webhook
         return false;
     }
 
-    public function registerV2(IApp $app, string $merchantId)
+    /**
+     * Execute register webhook, it will compare the existing webhooks and update or create new one. The developer should define the webhook topic in di.xml
+     *
+     * @see Xpify/Auth/etc/frontend/di.xml
+     * @param string $merchantId
+     * @return void
+     * @throws ShopifyException
+     * @throws \Shopify\Exception\MissingArgumentException|\Exception
+     */
+    public function register(string $merchantId): void
     {
-        $this->contextInitializer->initialize($app);
+        $app = $this->appOrException();
         $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
         $criteriaBuilder->addFilter('session_id', $merchantId);
         $criteriaBuilder->addFilter('app_id', $app->getId());
@@ -100,30 +111,129 @@ class Webhook
             throw new \Exception('Merchant not found');
         }
         $merchant = current($result->getItems());
-        $predefinedHandlers = $this->webhookHandlerRegister->getWebhookRegistry($app->getName());
-        $registerReturn = array_reduce($predefinedHandlers, function ($carry, IWebhookTopic $handler) use ($merchant) {
-            $carry[$handler->getTopic()] = [];
-            return $carry;
-        }, []);
+        $webhookRegistry = $this->webhookHandlerRegister->getWebhookRegistry($app->getName());
 
-        $existingHandlers = $this->getExistingWebhookHandlers($app, $merchant);
+        $existingHandlers = $this->getExistingWebhookHandlers($merchant);
         $privacyTopics = [
             'CUSTOMERS_DATA_REQUEST',
             'CUSTOMERS_REDACT',
             'SHOP_REDACT',
         ];
-        foreach ($predefinedHandlers as $topic) {
-            if (in_array($topic->getTopic(), $privacyTopics)) {
+        $updateOrCreate = [];
+        foreach ($webhookRegistry as $topic) {
+            if (in_array($topic->topicForStorage(), $privacyTopics)) {
+                unset($existingHandlers[$topic->topicForStorage()]);
                 continue;
             }
 
-            $registerReturn[$topic->getTopic()] = $this->registerTopic($merchant, $topic, $existingHandlers, $existingHandlers[$topic->getTopic()]);
+            $updateOrCreate[$topic->topicForStorage()] = [
+                'topic' => $topic,
+            ];
+            if (isset($existingHandlers[$topic->topicForStorage()])) {
+                $existingHandler = $existingHandlers[$topic->topicForStorage()];
+                unset($existingHandlers[$topic->topicForStorage()]);
+
+                // compare registry and existing handlers
+                $includeFieldsEqual = $existingHandler['include_fields'] === $topic->getIncludeFields();
+                $metafieldNamespacesEqual = $existingHandler['metafield_namespaces'] === $topic->getMetafieldNamespaces();
+                if (!$includeFieldsEqual || !$metafieldNamespacesEqual) {
+                    $updateOrCreate[$topic->topicForStorage()]['id'] = $existingHandler['id'];
+                } else {
+                    unset($updateOrCreate[$topic->topicForStorage()]);
+                }
+            }
+        }
+        $this->updateOrCreateWebhooks($merchant, $updateOrCreate);
+
+        // remove the rest of existing handlers
+        foreach ($existingHandlers as $handler) {
+            $this->deleteWebhook($merchant, $handler);
         }
     }
 
-    private function registerTopic()
+    /**
+     * Execute delete webhook
+     *
+     * @param IMerchant $merchant
+     * @param array $handler
+     * @return void
+     */
+    private function deleteWebhook(IMerchant $merchant, array $handler): void
     {
+        try {
+            $app = $this->appOrException();
+            $topic = [
+                'operation' => 'delete',
+                'id' => $handler['id'],
+            ];
+            $query = $this->buildWebhookMutation($topic, $app);
+            $client = $merchant->getGraphql();
+            $isSuccess = function ($body) {
+                return !empty($result['data'][$this->getMutationName(null, $topic['operation'])]['deletedWebhookSubscriptionId']);
+            };
+            $response = $client->query(data: $query);
+            $statusCode = $response->getStatusCode();
+            $body = $response->getDecodedBody();
+            if ($statusCode !== 200) {
+                throw new WebhookRegistrationException(
+                    __("Failed to delete webhook with Shopify (status code $statusCode): $body")->render()
+                );
+            }
+            if (!$isSuccess($body)) {
+                throw new WebhookRegistrationException(
+                    __("Failed to delete webhook with Shopify: $body")->render()
+                );
+            }
+        } catch (WebhookRegistrationException $e) {
+            $this->getLogger('webhook_register.log')?->debug("[APP: {$app->getName()}][Merchant: {$merchant->getShop()}] - {$e->getMessage()}");
+        } catch (\Throwable $e) {
+            $this->getLogger('webhook_register.log')?->debug("[APP: {$app->getName()}][Merchant: {$merchant->getShop()}] - Failed to delete webhook with Shopify: {$e->getMessage()}");
+        }
+    }
 
+    /**
+     * Create or update webhooks
+     *
+     * @param IMerchant $merchant
+     * @param array $handlers
+     * @return void
+     * @throws \Exception
+     */
+    private function updateOrCreateWebhooks(IMerchant $merchant, array $handlers): void
+    {
+        $app = $this->appOrException();
+        $client = $merchant->getGraphql();
+        $isSuccessQuery = function ($body, ?string $webhookId) {
+            return !empty($result['data'][$this->getMutationName($webhookId)]['webhookSubscription']);
+        };
+        foreach ($handlers as $handler) {
+            try {
+                $query = $this->buildWebhookMutation($handler, $app);
+                $response = $client->query(data: $query);
+                $statusCode = $response->getStatusCode();
+                $body = $response->getDecodedBody();
+                if ($statusCode !== 200) {
+                    throw new WebhookRegistrationException(
+                        <<<ERROR
+                    Failed to register webhook with Shopify (status code $statusCode):
+                    $body
+                    ERROR
+                    );
+                }
+                if (!$isSuccessQuery($body, $handler['id'] ?? null)) {
+                    throw new WebhookRegistrationException(
+                        <<<ERROR
+                    Failed to register webhook with Shopify:
+                    $body
+                    ERROR
+                    );
+                }
+            } catch (WebhookRegistrationException $e) {
+                $this->getLogger('webhook_register.log')?->debug("[APP: {$app->getName()}][Merchant: {$merchant->getShop()}] - {$e->getMessage()}");
+            } catch (\Throwable $e) {
+                $this->getLogger('webhook_register.log')?->debug("[APP: {$app->getName()}][Merchant: {$merchant->getShop()}] - Failed to register webhook with Shopify: {$e->getMessage()}");
+            }
+        }
     }
 
     /**
@@ -133,13 +243,12 @@ class Webhook
      * Then it tries to get the existing webhook handlers using the GraphQL client. If the request is successful, it returns an array containing the existing webhook handlers.
      * If the request fails, it logs an error message and throws a ShopifyException.
      *
-     * @param IApp $app The app object
      * @param IMerchant $merchant The merchant object
      * @param string|null $endcursor
      * @return array An array containing the existing webhook handlers
      * @throws ShopifyException
      */
-    private function getExistingWebhookHandlers(IApp $app, IMerchant $merchant, ?string $endcursor = null): array
+    private function getExistingWebhookHandlers(IMerchant $merchant, ?string $endcursor = null): array
     {
         $client = $merchant->getGraphql();
         try {
@@ -161,7 +270,7 @@ class Webhook
                 return $carry;
             }, []);
             if ($hasNextPage) {
-                $handlers = array_merge($handlers, $this->getExistingWebhookHandlers($app, $merchant, $endCursor));
+                $handlers = array_merge($handlers, $this->getExistingWebhookHandlers($merchant, $endCursor));
             }
             return $handlers;
         } catch (ShopifyException $e) {
@@ -269,10 +378,10 @@ class Webhook
      *
      * @return \Zend_Log|null
      */
-    private function getLogger(): ?\Zend_Log
+    private function getLogger(?string $fileName = 'webhook_process.log'): ?\Zend_Log
     {
         try {
-            $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/webhook_process.log');
+            $writer = new \Zend_Log_Writer_Stream(BP . "/var/log/$fileName");
             $logger = new \Zend_Log();
             $logger->addWriter($writer);
             return $logger;
@@ -321,5 +430,64 @@ class Webhook
           }
         }
         QUERY;
+    }
+
+    /**
+     * Get mutation name depending on the webhook id.
+     *
+     * @param string|null $webhookId
+     * @param string|null $operationName
+     * @return string
+     */
+    private function getMutationName(?string $webhookId, ?string $operationName = null): string
+    {
+        if ($operationName === 'delete') {
+            return 'webhookSubscriptionDelete';
+        }
+        return $webhookId ? 'webhookSubscriptionUpdate' : 'webhookSubscriptionCreate';
+    }
+
+    /**
+     * Build a GraphQL query to register or update a webhook.
+     *
+     * @param array $topic - structure: ['topic' => IWebhookTopic, 'id' => string|null]
+     * @return string
+     * @throws \Exception
+     */
+    private function buildWebhookMutation(array $topic): string
+    {
+        $app = $this->appOrException();
+        $operationName = $topic['operation'] ?? null;
+        $mutationName = $this->getMutationName($topic['id'] ?? null, $operationName);
+        $identifier = isset($topic['id']) ? "id: \"{$topic['id']}\"" : "topic: {$topic['topic']->topicForStorage()}";
+        $mutationParams = '';
+        if ($operationName !== 'delete') {
+            $method = new HttpDelivery();
+            $params = [
+                'callbackUrl' => "\"{$method->getCallbackAddress(static::WEBHOOK_PATH . "/_rid/{$app->getRemoteId()}")}\"",
+            ];
+            /** @var IWebhookTopic $handler */
+            $handler = $topic['topic'];
+            if (!empty($handler->getIncludeFields())) {
+                $params['includeFields'] = json_encode($handler->getIncludeFields());
+            }
+            if (!empty($handler->getMetafieldNamespaces())) {
+                $params['metafieldNamespaces'] = json_encode($handler->getMetafieldNamespaces());
+            }
+            $paramsString = implode(', ', array_map(function ($key, $value) {
+                return "$key: $value";
+            }, array_keys($params), array_values($params)));
+            $mutationParams = "webhookSubscription: {{$paramsString}}";
+        }
+        return <<<MUTATION
+        mutation ShopifyApiCreateWebhookSubscription {
+            $mutationName(
+                $identifier,
+                $mutationParams
+            ) {
+                userErrors { field message }
+            }
+        }
+        MUTATION;
     }
 }
