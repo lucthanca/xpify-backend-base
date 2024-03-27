@@ -20,24 +20,20 @@ class AppPricingPlanQuery extends AuthSessionAbstractResolver implements \Magent
 
     private SearchCriteriaBuilder $criteriaBuilder;
 
-    private PricingPlanFormatter $formatter;
     private \Magento\Framework\Api\SortOrderBuilder $sorderBuilder;
 
     /**
      * @param SearchCriteriaBuilder $criteriaBuilder
      * @param PricingPlanRepositoryInterface $pricingPlanRepository
-     * @param PricingPlanFormatter $formatter
      * @param SortOrderBuilder $orderBuilder
      */
     public function __construct(
         SearchCriteriaBuilder $criteriaBuilder,
         PricingPlanRepositoryInterface $pricingPlanRepository,
-        PricingPlanFormatter $formatter,
         \Magento\Framework\Api\SortOrderBuilder $sorderBuilder
     ) {
         $this->pricingPlanRepository = $pricingPlanRepository;
         $this->criteriaBuilder = $criteriaBuilder;
-        $this->formatter = $formatter;
         $this->sorderBuilder = $sorderBuilder;
     }
 
@@ -58,7 +54,7 @@ class AppPricingPlanQuery extends AuthSessionAbstractResolver implements \Magent
             $searchResult = $this->pricingPlanRepository->getList($this->criteriaBuilder->create());
             $items = [];
             foreach ($searchResult->getItems() as $item) {
-                $items[] = $this->formatter->toGraphQlOutput($item);
+                $items[] = PricingPlanFormatter::toGraphQlOutput($item);
             }
             return $items;
         } catch (\Exception $e) {
