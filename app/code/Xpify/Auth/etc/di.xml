@@ -8,10 +8,33 @@
         </arguments>
     </virtualType>
 
+    <virtualType name="Shopify_Webhooks_Topics_Customers_Data_Request" type="Xpify\Webhook\Model\WebhookTopic">
+        <arguments>
+            <argument name="topic" xsi:type="const">Xpify\Webhook\Model\WebhookTopic::CUSTOMERS_DATA_REQUEST</argument>
+            <argument name="handler" xsi:type="object">Xpify\Auth\Service\Webhooks\CustomerDataRequest</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Shopify_Webhooks_Topics_Customers_Redact" type="Xpify\Webhook\Model\WebhookTopic">
+        <arguments>
+            <argument name="topic" xsi:type="const">Xpify\Webhook\Model\WebhookTopic::CUSTOMERS_REDACT</argument>
+            <argument name="handler" xsi:type="object">Xpify\Auth\Service\Webhooks\CustomersRedact</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Shopify_Webhooks_Topics_ShopRedact" type="Xpify\Webhook\Model\WebhookTopic">
+        <arguments>
+            <argument name="topic" xsi:type="const">Xpify\Webhook\Model\WebhookTopic::SHOP_REDACT</argument>
+            <argument name="handler" xsi:type="object">Xpify\Auth\Service\Webhooks\ShopRedact</argument>
+        </arguments>
+    </virtualType>
+
     <type name="Xpify\Webhook\Service\WebhookHandlerRegister">
         <arguments>
             <argument name="webhookTopics" xsi:type="array">
                 <item name="app_uninstalled" xsi:type="object">Shopify_Webhooks_Topics_AppUninstalled</item>
+                <item name="customers_data_request" xsi:type="object">Shopify_Webhooks_Topics_Customers_Data_Request</item>
+                <item name="customers_redact" xsi:type="object">Shopify_Webhooks_Topics_Customers_Redact</item>
+                <item name="shop_redact" xsi:type="object">Shopify_Webhooks_Topics_ShopRedact</item>
             </argument>
         </arguments>
     </type>
