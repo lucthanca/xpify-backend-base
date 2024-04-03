@@ -335,18 +335,26 @@ class Webhook
     public function process(): array
     {
         $topic = $this->request->getHeader(HttpHeaders::X_SHOPIFY_TOPIC, '');
+        $hmacSha256 = $this->request->getHeader(HttpHeaders::X_SHOPIFY_HMAC);
         try {
             // required load app before processing webhook
             $app = $this->appOrException();
-            $this->contextInitializer->initialize($app);
-            $response = Registry::process($this->request->getHeaders()->toArray(), $this->request->getContent());
-            if (!$response->isSuccess()) {
-                $this->getLogger()?->debug(__("Failed to process '$topic' webhook: %1", $response->getErrorMessage())->render());
-                $code = 500;
-                $errmsg = __("Failed to process '$topic' webhook");
+            $secretKey = $app->getSecretKey();
+            $verifyHmac = $this->verifyWebhook($this->request->getContent(), $secretKey, $hmacSha256);
+            if ($verifyHmac) {
+                $this->contextInitializer->initialize($app);
+                $response = Registry::process($this->request->getHeaders()->toArray(), $this->request->getContent());
+                if (!$response->isSuccess()) {
+                    $this->getLogger()?->debug(__("Failed to process '$topic' webhook: %1", $response->getErrorMessage())->render());
+                    $code = 500;
+                    $errmsg = __("Failed to process '$topic' webhook");
+                } else {
+                    $code = 200;
+                    $errmsg = __("Processed '$topic' webhook successfully");
+                }
             } else {
-                $code = 200;
-                $errmsg = __("Processed '$topic' webhook successfully");
+                $code = 401;
+                $errmsg = __("Failed to process '$topic' webhook. HMAC not verify!");
             }
         } catch (InvalidWebhookException $e) {
             $this->getLogger()?->debug(__("Got invalid webhook request for topic '$topic': %2", $e->getMessage())->render());
@@ -358,6 +366,20 @@ class Webhook
             $errmsg = __("Got an exception when handling '$topic' webhook");
         }
         return [$code, $errmsg];
+    }
+
+    /**
+     * The following verify a webhook request
+     *
+     * @param $data
+     * @param $secretKey
+     * @param $hmacSha256
+     * @return bool
+     */
+    protected function verifyWebhook($data, $secretKey, $hmacSha256) {
+
+        $calculated_hmac = base64_encode(hash_hmac('sha256', $data, $secretKey, true));
+        return hash_equals($calculated_hmac, $hmacSha256);
     }
 
     /**
