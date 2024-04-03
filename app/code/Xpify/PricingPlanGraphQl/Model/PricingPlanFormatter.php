@@ -6,7 +6,7 @@ namespace Xpify\PricingPlanGraphQl\Model;
 use Xpify\Core\Helper\Utils;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 
-class PricingPlanFormatter
+final class PricingPlanFormatter
 {
     /**
      * Convert Pricing Plan to GraphQl output
@@ -14,7 +14,7 @@ class PricingPlanFormatter
      * @param IPricingPlan $pricingPlan
      * @return array
      */
-    public function toGraphQlOutput(IPricingPlan $pricingPlan): array
+    public static function toGraphQlOutput(IPricingPlan $pricingPlan): array
     {
         return [
             'model' => $pricingPlan,
