@@ -379,7 +379,7 @@ class Webhook
     protected function verifyWebhook($data, $secretKey, $hmacSha256) {
 
         $calculated_hmac = base64_encode(hash_hmac('sha256', $data, $secretKey, true));
-        return hash_equals($calculated_hmac, $hmacSha256);
+        return $calculated_hmac === $hmacSha256;
     }
 
     /**

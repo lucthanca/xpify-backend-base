@@ -9,6 +9,10 @@ use Xpify\Webhook\Model\WebhookAppResolverInterface as IWebhookAppResolver;
 
 class WebhookTopic implements IWebhookTopic
 {
+    const CUSTOMERS_DATA_REQUEST = "CUSTOMERS_DATA_REQUEST";
+    const CUSTOMERS_REDACT = "CUSTOMERS_REDACT";
+    const SHOP_REDACT = "SHOP_REDACT";
+
     private ?string $topicForStorage = null;
     /**
      * @var string
