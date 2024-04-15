@@ -116,9 +116,9 @@ class Webhook
 
         $existingHandlers = $this->getExistingWebhookHandlers($merchant);
         $privacyTopics = [
-            'CUSTOMERS_DATA_REQUEST',
-            'CUSTOMERS_REDACT',
-            'SHOP_REDACT',
+            \Xpify\Webhook\Model\WebhookTopic::CUSTOMERS_DATA_REQUEST,
+            \Xpify\Webhook\Model\WebhookTopic::CUSTOMERS_REDACT,
+            \Xpify\Webhook\Model\WebhookTopic::SHOP_REDACT,
         ];
         $updateOrCreate = [];
         foreach ($webhookRegistry as $topic) {

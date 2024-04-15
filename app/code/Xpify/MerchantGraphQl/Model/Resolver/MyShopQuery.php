@@ -23,7 +23,7 @@ class MyShopQuery extends AuthSessionAbstractResolver implements ResolverInterfa
      */
     public function execResolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $merchant = $this->getMerchantSession()->getMerchant();
+        $merchant = $context->getExtensionAttributes()->getMerchant();
         $apiVersion = \Shopify\Context::$API_VERSION;
 
         $response = $merchant->getRest()->get(
