@@ -81,3 +81,5 @@ atlassian*
 
 /app/code/*
 !/app/code/Xpify/
+
+/pub/adminer.php
