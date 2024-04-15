@@ -1,6 +1,7 @@
 
 type Query {
     pricingPlans: [PricingPlan] @doc(description: "Get all pricing plans for an app") @resolver(class: "Xpify\\PricingPlanGraphQl\\Model\\Resolver\\AppPricingPlanQuery")
+    pricingPlan(id: ID!): PricingPlan @doc(description: "Get a pricing plan by ID") @resolver(class: "Xpify\\PricingPlanGraphQl\\Model\\Resolver\\PricingPlanQuery")
 }
 
 type Interval {
