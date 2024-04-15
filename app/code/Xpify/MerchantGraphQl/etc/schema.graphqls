@@ -4,6 +4,12 @@ enum PricingPlanInterval {
     ANNUAL
 }
 
+type Query {
+    myShop: Shop
+    @doc(description: "")
+    @resolver(class: "Xpify\\MerchantGraphQl\\Model\\Resolver\\MyShopQuery")
+}
+
 type Mutation {
     subscribePricingPlan(input: SubscribePricingPlanInput!): SubscribePricingPlanOutput @doc(description: "Subscribe to a pricing plan") @resolver(class: "Xpify\\MerchantGraphQl\\Model\\Resolver\\SubscribePricingPlanMutation")
 }
@@ -12,6 +18,14 @@ input SubscribePricingPlanInput {
     plan_id: ID!
     interval: PricingPlanInterval! = ONE_TIME @doc(description: "The interval of the subscription. Default: ONE_TIME")
 }
+
+type Shop @doc(description: "Follow guide Shopify") {
+    email: String
+    shop_owner: String
+    name: String
+    domain: String
+}
+
 type SubscribePricingPlanOutput {
     id: ID! @doc(description: "The ID of the subscription")
     code: String! @doc(description: "The code of the plan subscribed")
