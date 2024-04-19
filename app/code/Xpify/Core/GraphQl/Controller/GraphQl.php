@@ -172,6 +172,8 @@ class GraphQl implements FrontControllerInterface
             $query = $data['query'] ?? '';
             $variables = $data['variables'] ?? null;
 
+            $context = $this->contextFactory->create();
+            \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Registry::class)->register('g_context', $context);
             // We must extract queried field names to avoid instantiation of unnecessary fields in webonyx schema
             // Temporal coupling is required for performance optimization
             $this->queryFields->setQuery($query, $variables);
@@ -180,7 +182,7 @@ class GraphQl implements FrontControllerInterface
             $result = $this->queryProcessor->process(
                 $schema,
                 $query,
-                $this->contextFactory->create(),
+                $context,
                 $data['variables'] ?? []
             );
         } catch (GraphQlShopifyReauthorizeRequiredException $e) {

@@ -50,4 +50,6 @@
         </arguments>
     </type>
     <!-- /END DISABLE SEARCH ENGINE DECLARE  -->
+    <preference for="Magento\Webapi\Model\Authorization\TokenUserContext" type="Xpify\Core\Model\Authorization\TokenUserContext"/>
+    <preference for="Magento\Framework\GraphQl\Config" type="Xpify\Core\GraphQl\Config"/>
 </config>
