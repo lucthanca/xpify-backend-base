@@ -52,4 +52,14 @@
     <!-- /END DISABLE SEARCH ENGINE DECLARE  -->
     <preference for="Magento\Webapi\Model\Authorization\TokenUserContext" type="Xpify\Core\Model\Authorization\TokenUserContext"/>
     <preference for="Magento\Framework\GraphQl\Config" type="Xpify\Core\GraphQl\Config"/>
+    <type name="Magento\Framework\HTTP\PhpEnvironment\RemoteAddress">
+        <arguments>
+            <argument name="alternativeHeaders" xsi:type="array">
+                <item name="x_forwarded_for" xsi:type="string">HTTP_X_FORWARDED_FOR</item>
+            </argument>
+            <argument name="trustedProxies" xsi:type="array">
+                <item name="localIP" xsi:type="string">127.0.0.1</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

@@ -24,6 +24,7 @@ use Magento\GraphQl\Helper\Query\Logger\LogData;
 use Magento\GraphQl\Model\Query\ContextFactoryInterface;
 use Magento\GraphQl\Model\Query\Logger\LoggerPool;
 use Xpify\AuthGraphQl\Exception\GraphQlShopifyReauthorizeRequiredException;
+use Xpify\Core\Model\ConfigProvider;
 
 class GraphQl implements FrontControllerInterface
 {
@@ -98,6 +99,7 @@ class GraphQl implements FrontControllerInterface
      * @var AreaList
      */
     private $areaList;
+    private \Xpify\Core\Model\ConfigProvider $configProvider;
 
     /**
      * @param Response $response
@@ -108,6 +110,7 @@ class GraphQl implements FrontControllerInterface
      * @param ContextInterface $resolverContext Deprecated. $contextFactory is used for creating Context object.
      * @param HttpRequestProcessor $requestProcessor
      * @param QueryFields $queryFields
+     * @param ConfigProvider $configProvider
      * @param JsonFactory|null $jsonFactory
      * @param HttpResponse|null $httpResponse
      * @param ContextFactoryInterface|null $contextFactory
@@ -125,6 +128,7 @@ class GraphQl implements FrontControllerInterface
         ContextInterface $resolverContext,
         HttpRequestProcessor $requestProcessor,
         QueryFields $queryFields,
+        \Xpify\Core\Model\ConfigProvider $configProvider,
         JsonFactory $jsonFactory = null,
         HttpResponse $httpResponse = null,
         ContextFactoryInterface $contextFactory = null,
@@ -146,6 +150,7 @@ class GraphQl implements FrontControllerInterface
         $this->logDataHelper = $logDataHelper ?: ObjectManager::getInstance()->get(LogData::class);
         $this->loggerPool = $loggerPool ?: ObjectManager::getInstance()->get(LoggerPool::class);
         $this->areaList = $areaList ?: ObjectManager::getInstance()->get(AreaList::class);
+        $this->configProvider = $configProvider;
     }
 
     /**
@@ -157,6 +162,41 @@ class GraphQl implements FrontControllerInterface
      */
     public function dispatch(RequestInterface $request): ResponseInterface
     {
+        if ($this->configProvider->isWhitelistEnabled()) {
+            $request = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\App\RequestInterface::class);
+            $forwardedIps = $request->getServer('HTTP_X_FORWARDED_FOR', false);
+            if ($forwardedIps) {
+                if (str_contains($forwardedIps, ',')) {
+                    $ipList = explode(',', $forwardedIps);
+                } else {
+                    $ipList = [$forwardedIps];
+                }
+                $ipList = array_filter(
+                    $ipList,
+                    function (string $ip) {
+                        return filter_var(trim($ip), FILTER_VALIDATE_IP);
+                    }
+                );
+                // check the ipList must includes on of ip in whitelist IP
+                $whitelistIps = $this->configProvider->getWhitelistIps();
+                $isWhitelisted = false;
+                foreach ($ipList as $ip) {
+                    if (in_array($ip, $whitelistIps, true)) {
+                        $isWhitelisted = true;
+                        break;
+                    }
+                }
+                if (empty($ipList) || !$isWhitelisted) {
+                    $rawResult = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Controller\Result\Raw::class);
+                    $rawResult->setHttpResponseCode(403);
+                    $rawResult->setContents('Nothing here!');
+                    $rawResult->renderResult($this->httpResponse);
+                    return $this->httpResponse;
+                }
+            }
+        }
+
+
         $this->areaList->getArea(Area::AREA_GRAPHQL)->load(Area::PART_TRANSLATE);
 
         $statusCode = 200;

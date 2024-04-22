@@ -12,6 +12,14 @@
             <resource>Xpify_Core::config</resource>
             <group id="general" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label><![CDATA[General]]></label>
+                <field id="enable_whitelist" translate="label" type="select" showInDefault="1">
+                    <label><![CDATA[Enable GraphQL API Whitelist]]></label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="ip_whitelist" translate="label" type="textarea" sortOrder="1000" showInDefault="1">
+                    <label><![CDATA[GraphQL API Whitelist Ip]]></label>
+                    <comment><![CDATA[Separate by comma.]]></comment>
+                </field>
 <!--                <field id="api_secret" translate="label comment" type="obscure" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">-->
 <!--                    <label><![CDATA[Shopify API Secret]]></label>-->
 <!--                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>-->
