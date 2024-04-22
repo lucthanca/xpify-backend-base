@@ -33,9 +33,10 @@ class Filter
         if (!isset($this->runtimeCached[$id])) {
             if (!empty($this->filterPool[$id])) {
                 $requestAppId = $this->request->getHeader('x-xpify-app');
-                if (!$requestAppId) throw new \Exception('App ID not found in request header');
-                $appId = Utils::uidToId($requestAppId);
-                $this->runtimeCached[$id] = $this->filterPool[$id]->isValid($appId);
+                if ($requestAppId) {
+                    $appId = Utils::uidToId($requestAppId);
+                }
+                $this->runtimeCached[$id] = $this->filterPool[$id]->isValid($appId ?? null);
 
             } else {
                 $this->runtimeCached[$id] = false;

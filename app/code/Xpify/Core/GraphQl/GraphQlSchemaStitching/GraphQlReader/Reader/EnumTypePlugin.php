@@ -9,9 +9,11 @@ class EnumTypePlugin
 {
     public function afterRead($subject, $result, \GraphQL\Type\Definition\Type $typeMeta)
     {
-        $appDirectiveValue = AppDirectiveReader::read($typeMeta->astNode->directives);
-        if ($appDirectiveValue) {
-            $result['app'] = $appDirectiveValue;
+        if (!empty($result)) {
+            $appDirectiveValue = AppDirectiveReader::read($typeMeta->astNode->directives);
+            if ($appDirectiveValue) {
+                $result['app'] = $appDirectiveValue;
+            }
         }
         return $result;
     }

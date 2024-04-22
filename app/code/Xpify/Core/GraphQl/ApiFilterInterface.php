@@ -5,5 +5,5 @@ namespace Xpify\Core\GraphQl;
 
 interface ApiFilterInterface
 {
-    public function isValid(string $currentAppID): bool;
+    public function isValid(?string $currentAppID): bool;
 }

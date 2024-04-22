@@ -1,16 +1,16 @@
-enum LoadAppInputField {
+enum LoadAppInputField @app(id: "xpify.core") {
     remote_id
     name
 }
 
 type Query {
-    app(field: LoadAppInputField!, value: String!): App @doc(description: "Retrieve a single `App` object from the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppQuery")
+    app(field: LoadAppInputField!, value: String!): App @doc(description: "Retrieve a single `App` object from the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppQuery") @app(id: "xpify.core")
 }
 type Mutation {
-    saveApp(input: SaveAppInput!): App @doc(description: "Create order update a `App` object to the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppSaveMutation")
+    saveApp(input: SaveAppInput!): App @doc(description: "Create order update a `App` object to the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppSaveMutation") @app(id: "xpify.core")
 #    deleteApp(id: ID!): Boolean @doc(description: "Delete a `App` object from the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\DestroyAppMutation")
 }
-type App {
+type App @app(id: "xpify.core") {
     id: ID! @doc(description: "The unique ID for a `App` object.")
     remote_id: String @doc(description: "The real Shopify App ID.")
     name: String! @doc(description: "The name of the app.")
@@ -23,7 +23,7 @@ type App {
     api_version: String @doc(description: "The API version for the app.")
 }
 
-input SaveAppInput {
+input SaveAppInput @app(id: "xpify.core") {
     id: ID @doc(description: "The unique ID for a `App` object. If not provided, a new `App` object will be created.")
     remote_id: String @doc(description: "The real Shopify App ID.")
     name: String @doc(description: "The name of the app. Required.")

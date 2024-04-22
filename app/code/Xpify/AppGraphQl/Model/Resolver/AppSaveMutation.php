@@ -18,8 +18,6 @@ use Xpify\Core\Exception\GraphQlException;
 
 class AppSaveMutation implements ResolverInterface
 {
-    use AuthorizationTrait;
-
     private AppRepositoryInterface $appRepository;
 
     private Uid $uidEncoder;
@@ -47,7 +45,6 @@ class AppSaveMutation implements ResolverInterface
 
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $this->authorize($context);
         try {
             $this->validateArgs($args);
             if (!empty($args['input']['id'])) {

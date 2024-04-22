@@ -8,4 +8,11 @@
             </argument>
         </arguments>
     </type>
+    <type name="Xpify\Core\GraphQl\Filter">
+        <arguments>
+            <argument name="filterPool" xsi:type="array">
+                <item name="xpify.core" xsi:type="object">Xpify\AppGraphQl\Model\FilterApi</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

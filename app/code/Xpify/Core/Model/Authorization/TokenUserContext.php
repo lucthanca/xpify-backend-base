@@ -66,7 +66,9 @@ class TokenUserContext extends \Magento\Webapi\Model\Authorization\TokenUserCont
         }
 
         $authorizationHeaderValue = $this->request->getHeader('x-authorization');
-        if (!$authorizationHeaderValue) $this->request->getHeader('Authorization');
+        if (!$authorizationHeaderValue) {
+            $authorizationHeaderValue = $this->request->getHeader('Authorization');
+        }
 
         if (!$authorizationHeaderValue) {
             $this->isRequestProcessed = true;

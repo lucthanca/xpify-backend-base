@@ -13,8 +13,6 @@ use Xpify\AppGraphQl\Model\AuthorizationTrait;
 
 class AppQuery implements ResolverInterface
 {
-    use AuthorizationTrait;
-
     private $appRepository;
 
     private $appResultFormatter;
@@ -36,7 +34,6 @@ class AppQuery implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $this->authorize($context);
         try {
             $app = $this->appRepository->get($args['value'], $args['field']);
             if (!$app->getId()) {
