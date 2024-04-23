@@ -37,6 +37,7 @@ class AppResultFormatter
             IApp::SCOPES => $app->getScopes(),
             IApp::API_VERSION => $app->getApiVersion(),
             IApp::HANDLE => $app->getHandle(),
+            IApp::TOKEN => $app->getToken(),
         ];
     }
 }

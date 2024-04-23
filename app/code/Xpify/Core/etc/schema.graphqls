@@ -1,9 +1,6 @@
 directive @app(id: String="") on QUERY
     | MUTATION
     | FIELD
-    | FRAGMENT_DEFINITION
-    | FRAGMENT_SPREAD
-    | INLINE_FRAGMENT
     | SCHEMA
     | SCALAR
     | OBJECT

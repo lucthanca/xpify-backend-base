@@ -49,6 +49,9 @@ class AppSaveMutation implements ResolverInterface
             $this->validateArgs($args);
             if (!empty($args['input']['id'])) {
                 $app = $this->appRepository->get($this->uidEncoder->decode((string) $args['input']['id']));
+                if (!$app->getToken()) {
+                    $app->setDataChanges(true);
+                }
             } else {
                 $app = $this->appRepository->newInstance();
             }

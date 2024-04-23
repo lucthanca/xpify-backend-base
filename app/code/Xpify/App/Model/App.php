@@ -5,12 +5,23 @@ namespace Xpify\App\Model;
 
 use Magento\Framework\Model\AbstractModel;
 use Xpify\App\Api\Data\AppInterface as IApp;
+use Magento\Framework\Oauth\Helper\Oauth as OauthHelper;
 
 class App extends AbstractModel implements IApp
 {
     protected function _construct()
     {
         $this->_init(\Xpify\App\Model\ResourceModel\App::class);
+    }
+
+    public function getToken(): ?string
+    {
+        return $this->getData(self::TOKEN);
+    }
+
+    public function setToken(string $token): IApp
+    {
+        return $this->setData(self::TOKEN, $token);
     }
 
     /**
@@ -171,5 +182,14 @@ class App extends AbstractModel implements IApp
     public function setHandle(string $handle): IApp
     {
         return $this->setData(self::HANDLE, $handle);
+    }
+
+    public function beforeSave()
+    {
+        parent::beforeSave();
+        if (!$this->getToken()) {
+            $oauthHelper = \Magento\Framework\App\ObjectManager::getInstance()->get(OauthHelper::class);
+            $this->setToken($oauthHelper->generateToken());
+        }
     }
 }

@@ -56,18 +56,17 @@ class AppToContext implements ContextParametersProcessorInterface
     {
         // X-Xpify-App: Shopify App ID
         $xpifyAppHeader = $this->request->getHeader('X-Xpify-App');
-        if (!$xpifyAppHeader) {
+        $xpifyAuthAppHeader = $this->request->getHeader('X-Xpify-App-Token');
+        if (!$xpifyAppHeader && !$xpifyAuthAppHeader) {
             return $contextParameters;
         }
 
         try {
-            $decodedAppId = $this->uidEncoder->decode($xpifyAppHeader);
-            if ($decodedAppId !== null) {
-                $app = $this->appRepository->get($decodedAppId, IApp::ID);
-                if (!$app->getId()) {
-                    return $contextParameters;
-                }
-
+            $decodedAppId = null;
+            if ($xpifyAppHeader) {
+                $decodedAppId = $this->uidEncoder->decode($xpifyAppHeader);
+            }
+            $initAppContext = function (IApp $app) use ($contextParameters) {
                 $contextParameters->addExtensionAttribute('app', $app);
                 // In graphql area, it should be locked to current app in context
                 $this->getCurrentApp->set($app)->lock();
@@ -80,6 +79,22 @@ class AppToContext implements ContextParametersProcessorInterface
                     $logger->debug($e->getMessage() . ' ||| ' . $e->getTraceAsString());
 
                     throw new LocalizedException(__('Failed to initialize Shopify context'));
+                }
+            };
+            if ($decodedAppId !== null) {
+                $app = $this->appRepository->get($decodedAppId, IApp::ID);
+                if ($app->getId()) {
+                    $initAppContext($app);
+                } else {
+                    // mark the app as not found
+                    $decodedAppId = null;
+                }
+            }
+            $authApp = $this->appRepository->get($xpifyAuthAppHeader, IApp::TOKEN);
+            if ($authApp->getId()) {
+                $contextParameters->addExtensionAttribute('auth_app', $authApp);
+                if ($decodedAppId === null) {
+                    $initAppContext($authApp);
                 }
             }
         } catch (LocalizedException $e) {

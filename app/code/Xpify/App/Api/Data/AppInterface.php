@@ -27,6 +27,11 @@ interface AppInterface
     const API_VERSION = 'api_version';
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
+    const TOKEN = 'token';
+
+    public function getToken(): ?string;
+
+    public function setToken(string $token): self;
 
     public function getApiVersion(): ?string;
 

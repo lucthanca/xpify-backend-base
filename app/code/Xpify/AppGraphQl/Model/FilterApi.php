@@ -6,6 +6,7 @@ namespace Xpify\AppGraphQl\Model;
 use Magento\Authorization\Model\UserContextInterface;
 use Magento\Framework\AuthorizationInterface;
 use Xpify\Core\GraphQl\ApiFilterInterface as IApiFilter;
+use Xpify\App\Api\Data\AppInterface as IApp;
 
 class FilterApi implements IApiFilter
 {
@@ -26,7 +27,7 @@ class FilterApi implements IApiFilter
      * @param string|null $currentAppID
      * @return bool
      */
-    public function isValid(?string $currentAppID): bool
+    public function isValid(?IApp $authApp): bool
     {
         $context = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Registry::class)->registry('g_context');
         $isAdmin = $context->getUserId() && $context->getUserType() === UserContextInterface::USER_TYPE_ADMIN;

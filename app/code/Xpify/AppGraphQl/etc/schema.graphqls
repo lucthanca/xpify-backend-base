@@ -21,6 +21,7 @@ type App @app(id: "xpify.core") {
     token: String @doc(description: "The token for the app.")
     scopes: String @doc(description: "The scopes for the app. Comma separated.")
     api_version: String @doc(description: "The API version for the app.")
+    token: String @doc(description: "The internal token for the app.")
 }
 
 input SaveAppInput @app(id: "xpify.core") {

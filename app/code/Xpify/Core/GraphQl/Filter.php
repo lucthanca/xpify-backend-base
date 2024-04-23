@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Xpify\Core\GraphQl;
 
-use Magento\Framework\App\RequestInterface;
-use Xpify\Core\Helper\Utils;
+use Magento\Framework\Exception\LocalizedException;
+use Xpify\Core\Model\Logger;
 
 class Filter
 {
@@ -14,29 +14,27 @@ class Filter
      * @var ApiFilterInterface[]
      */
     private array $filterPool;
-    private RequestInterface $request;
 
     /**
-     * @param RequestInterface $request
      * @param array $filterPool
      */
     public function __construct(
-        \Magento\Framework\App\RequestInterface $request,
         array $filterPool = []
     ) {
         $this->filterPool = $filterPool;
-        $this->request = $request;
     }
 
     public function isAllowed(string $id)
     {
         if (!isset($this->runtimeCached[$id])) {
             if (!empty($this->filterPool[$id])) {
-                $requestAppId = $this->request->getHeader('x-xpify-app');
-                if ($requestAppId) {
-                    $appId = Utils::uidToId($requestAppId);
+                $gContext = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Registry::class)->registry('g_context');
+                if (!$gContext) {
+                    Logger::getLogger('graphql.log')->debug('Missing g_context registry. Please check the ContextFactory should be create before TypeRegistry execute.');
+                    throw new LocalizedException(__('Something went wrong. Please try again later.'));
                 }
-                $this->runtimeCached[$id] = $this->filterPool[$id]->isValid($appId ?? null);
+                $authApp = $gContext->getExtensionAttributes()->getAuthApp();
+                $this->runtimeCached[$id] = $this->filterPool[$id]->isValid($authApp ?? null);
 
             } else {
                 $this->runtimeCached[$id] = false;
