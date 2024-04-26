@@ -24,11 +24,11 @@ class UpdateAssetMutation
 
         $response = $merchant->getRest()->put(
             "/admin/api/$apiVersion/themes/$themeId/assets.json",
-            null,
-            [],
             [
-                'asset[key]' => $args['asset'],
-                'asset[value]' => $args['value']
+                "asset" => [
+                    "key" => $args['asset'],
+                    "value" => $args['value'],
+                ],
             ]
         );
 
