@@ -10,24 +10,24 @@
             </argument>
         </arguments>
     </type>
-    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\ObjectTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />
-    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\UnionTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />
-    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\InterfaceTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />
-    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\InputObjectTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />
+<!--    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\ObjectTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />-->
+<!--    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\UnionTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />-->
+<!--    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\InterfaceTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />-->
+<!--    <virtualType name="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\InputObjectTypePlugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" />-->
     <type name="Magento\Framework\GraphQlSchemaStitching\GraphQlReader\Reader\EnumType">
         <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" sortOrder="1000"/>
     </type>
     <type name="Magento\Framework\GraphQlSchemaStitching\GraphQlReader\Reader\ObjectType">
-        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\ObjectTypePlugin" sortOrder="1000"/>
+        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" sortOrder="1000"/>
     </type>
     <type name="Magento\Framework\GraphQlSchemaStitching\GraphQlReader\Reader\UnionType">
-        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\UnionTypePlugin" sortOrder="1000"/>
+        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" sortOrder="1000"/>
     </type>
     <type name="Magento\Framework\GraphQlSchemaStitching\GraphQlReader\Reader\InterfaceType">
-        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\InterfaceTypePlugin" sortOrder="1000"/>
+        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" sortOrder="1000"/>
     </type>
     <type name="Magento\Framework\GraphQlSchemaStitching\GraphQlReader\Reader\InputObjectType">
-        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\InputObjectTypePlugin" sortOrder="1000"/>
+        <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\Reader\EnumTypePlugin" sortOrder="1000"/>
     </type>
     <type name="Magento\Framework\GraphQlSchemaStitching\GraphQlReader\MetaReader\FieldMetaReader">
         <plugin name="app_directives_plugin" type="Xpify\Core\GraphQl\GraphQlSchemaStitching\GraphQlReader\MetaReader\FieldMetaReaderPlugin" sortOrder="1000"/>
