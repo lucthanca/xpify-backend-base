@@ -39,7 +39,7 @@ class ConfigProvider
                 $this->runtimeCached[self::XML_CONFIG_PATH_WHITELIST_IPS] = [];
             }
         }
-        return [];
+        return $this->runtimeCached[self::XML_CONFIG_PATH_WHITELIST_IPS];
     }
 
     /**
