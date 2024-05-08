@@ -163,21 +163,16 @@ class GraphQl implements FrontControllerInterface
     public function dispatch(RequestInterface $request): ResponseInterface
     {
         if ($this->configProvider->isWhitelistEnabled()) {
-            $request = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\App\RequestInterface::class);
-            $forwardedIps = $request->getServer('HTTP_X_FORWARDED_FOR', false);
-            if ($forwardedIps) {
-                if (str_contains($forwardedIps, ',')) {
-                    $ipList = explode(',', $forwardedIps);
-                } else {
-                    $ipList = [$forwardedIps];
-                }
+            $remote = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\HTTP\PhpEnvironment\RemoteAddress::class);
+            if ($reqAddr = $remote->getRemoteAddress()) {
+                $ipList = [$reqAddr];
                 $ipList = array_filter(
                     $ipList,
                     function (string $ip) {
                         return filter_var(trim($ip), FILTER_VALIDATE_IP);
                     }
                 );
-                // check the ipList must includes on of ip in whitelist IP
+                // check the ipList must include on of ip in whitelist IP
                 $whitelistIps = $this->configProvider->getWhitelistIps();
                 $isWhitelisted = false;
                 foreach ($ipList as $ip) {
