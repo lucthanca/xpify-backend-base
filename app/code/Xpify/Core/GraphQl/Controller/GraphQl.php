@@ -162,7 +162,8 @@ class GraphQl implements FrontControllerInterface
      */
     public function dispatch(RequestInterface $request): ResponseInterface
     {
-        if ($this->configProvider->isWhitelistEnabled()) {
+        $isRequireAuth = !($request->getHeader('x-auth-required') === '0');
+        if ($this->configProvider->isWhitelistEnabled() && $isRequireAuth) {
             $remote = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\HTTP\PhpEnvironment\RemoteAddress::class);
             if ($reqAddr = $remote->getRemoteAddress()) {
                 $ipList = [$reqAddr];
@@ -253,7 +254,11 @@ class GraphQl implements FrontControllerInterface
     {
         /** @var Http $request */
         if ($request->isPost()) {
-            $data = $this->jsonSerializer->unserialize($request->getContent());
+            try {
+                $data = $this->jsonSerializer->unserialize($request->getContent());
+            } catch (\Exception $e) {
+                return [];
+            }
         } elseif ($request->isGet()) {
             $data = $request->getParams();
             $data['variables'] = isset($data['variables']) ?
