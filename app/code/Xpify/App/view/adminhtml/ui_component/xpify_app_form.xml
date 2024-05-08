@@ -136,6 +136,19 @@
                 <notice translate="true">Auto sync when Shopify CLI dev/deploy</notice>
             </settings>
         </field>
+        <field name="token" sortOrder="600" formElement="input">
+            <settings>
+                <disabled>true</disabled>
+                <dataType>text</dataType>
+                <label translate="true">Internal Token</label>
+                <dataScope>token</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                    <rule name="max_text_length" xsi:type="number">255</rule>
+                </validation>
+                <notice translate="true">Auto generate</notice>
+            </settings>
+        </field>
         <field name="created_at" sortOrder="9900" formElement="date">
             <settings>
                 <disabled>true</disabled>
