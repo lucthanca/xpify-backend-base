@@ -37,7 +37,9 @@ class ErrorHandler extends \Magento\Framework\GraphQl\Query\ErrorHandler
                 $traces = array_slice($trace, 0, 10);
                 $message = "";
                 foreach ($traces as $index =>  $trace) {
-                    $message .= "[#$index] " . $trace['file'] . ":" . $trace['line'] . " - " . $trace['function'] . "\n";
+                    $file = $trace['file'] ?? $trace['class'];
+                    $line = $trace['line'] ?? '';
+                    $message .= "[#$index] " . $file . ":" . $line . " - " . $trace['function'] . "\n";
                 }
                 // log the error
                 Logger::getLogger('graphql.log')->debug(__("%1 - Trace: %2", $error->getPrevious()->getMessage(), $message)->render());
