@@ -11,7 +11,7 @@ class Edit extends Action implements HttpGetActionInterface
     /**
      * @see _isAllowed()
      */
-    public const ADMIN_RESOURCE = 'Xpify_App::app';
+    public const ADMIN_RESOURCE = 'Xpify_App::app_management';
 
     protected $rsForwardFactory;
 
