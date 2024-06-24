@@ -13,6 +13,7 @@ use Xpify\App\Service\GetCurrentApp;
 use Xpify\Core\Helper\ShopifyContextInitializer;
 use Xpify\Merchant\Service\Billing;
 use Xpify\Webhook\Service\Webhook;
+use Magento\Framework\Event\ManagerInterface as IEventManager;
 
 class Callback implements HttpGetActionInterface
 {
@@ -22,6 +23,7 @@ class Callback implements HttpGetActionInterface
     private GetCurrentApp $getCurrentApp;
     private ShopifyContextInitializer $contextInitializer;
     private Billing $billing;
+    private IEventManager $eventManager;
 
     /**
      * @param IRequest $request
@@ -37,7 +39,8 @@ class Callback implements HttpGetActionInterface
         RedirectFactory $resultRedirectFactory,
         ShopifyContextInitializer $contextInitializer,
         GetCurrentApp $getCurrentApp,
-        Billing $billing
+        Billing $billing,
+        IEventManager $eventManager
     ) {
         $this->request = $request;
         $this->webhookManager = $webhookManager;
@@ -45,6 +48,7 @@ class Callback implements HttpGetActionInterface
         $this->getCurrentApp = $getCurrentApp;
         $this->contextInitializer = $contextInitializer;
         $this->billing = $billing;
+        $this->eventManager = $eventManager;
     }
     /**
      * @inheritDoc
@@ -59,13 +63,17 @@ class Callback implements HttpGetActionInterface
             ['Xpify\Auth\Service\CookieHandler', 'saveShopifyCookie'],
         );
         $host = $this->getRequest()->getParam('host');
-        $this->webhookManager->register($session->getId(), $app);
+        $this->webhookManager->register($session->getId());
         $redirectUrl = Utils::getEmbeddedAppUrl($host);
         list($shouldPayment, $payUrl) = $this->billing->check($session);
         if ($shouldPayment) {
             $redirectUrl = $payUrl;
         }
 
+        $this->eventManager->dispatch('app_installed_successfully', [
+            'app' => $app,
+            'shop' => $session->getShop(),
+        ]);
         return $this->resultRedirectFactory->create()->setUrl($redirectUrl);
     }
 

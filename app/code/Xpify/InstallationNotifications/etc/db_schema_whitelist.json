@@ -1,0 +1,7 @@
+{
+    "$xpify_merchants": {
+        "column": {
+            "install_noti_sent": true
+        }
+    }
+}

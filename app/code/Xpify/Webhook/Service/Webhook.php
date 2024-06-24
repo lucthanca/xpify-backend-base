@@ -170,7 +170,7 @@ class Webhook
             $query = $this->buildWebhookMutation($topic);
             $client = $merchant->getGraphql();
             $isSuccess = function ($body) {
-                return !empty($result['data'][$this->getMutationName(null, $topic['operation'])]['deletedWebhookSubscriptionId']);
+                return !empty($body['data'][$this->getMutationName(null, $topic['operation'])]['deletedWebhookSubscriptionId']);
             };
             $response = $client->query(data: $query);
             $statusCode = $response->getStatusCode();
@@ -205,7 +205,7 @@ class Webhook
         $app = $this->appOrException();
         $client = $merchant->getGraphql();
         $isSuccessQuery = function ($body, ?string $webhookId) {
-            return !empty($result['data'][$this->getMutationName($webhookId)]['webhookSubscription']);
+            return !empty($body['data'][$this->getMutationName($webhookId)]['webhookSubscription']['id']);
         };
         foreach ($handlers as $handler) {
             try {
@@ -214,18 +214,20 @@ class Webhook
                 $statusCode = $response->getStatusCode();
                 $body = $response->getDecodedBody();
                 if ($statusCode !== 200) {
+                    $stringifyBody = json_encode($body);
                     throw new WebhookRegistrationException(
                         <<<ERROR
                     Failed to register webhook with Shopify (status code $statusCode):
-                    $body
+                    $stringifyBody
                     ERROR
                     );
                 }
                 if (!$isSuccessQuery($body, $handler['id'] ?? null)) {
+                    $stringifyBody = json_encode($body);
                     throw new WebhookRegistrationException(
                         <<<ERROR
                     Failed to register webhook with Shopify:
-                    $body
+                    $stringifyBody
                     ERROR
                     );
                 }
@@ -478,6 +480,7 @@ class Webhook
         $mutationName = $this->getMutationName($topic['id'] ?? null, $operationName);
         $identifier = isset($topic['id']) ? "id: \"{$topic['id']}\"" : "topic: {$topic['topic']->topicForStorage()}";
         $mutationParams = '';
+        $returns = 'deletedWebhookSubscriptionId';
         if ($operationName !== 'delete') {
             $method = new HttpDelivery();
             $params = [
@@ -495,6 +498,7 @@ class Webhook
                 return "$key: $value";
             }, array_keys($params), array_values($params)));
             $mutationParams = "webhookSubscription: {{$paramsString}}";
+            $returns = 'webhookSubscription {id}';
         }
         return <<<MUTATION
         mutation ShopifyApiCreateWebhookSubscription {
@@ -502,6 +506,7 @@ class Webhook
                 $identifier,
                 $mutationParams
             ) {
+                $returns
                 userErrors { field message }
             }
         }
