@@ -35,6 +35,7 @@
                 <label><![CDATA[On Install Email]]></label>
                 <field id="receive_email" type="text" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label">
                     <label><![CDATA[Receive Email]]></label>
+                    <comment><![CDATA[single email only.]]></comment>
                 </field>
                 <field id="cc_email" type="textarea" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label comment">
                     <label><![CDATA[CC Emails]]></label>
@@ -45,6 +46,7 @@
                 <label><![CDATA[On Uninstall Email]]></label>
                 <field id="receive_email" type="text" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label">
                     <label><![CDATA[Receive Email]]></label>
+                    <comment><![CDATA[single email only.]]></comment>
                 </field>
                 <field id="cc_email" type="textarea" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label comment">
                     <label><![CDATA[CC Emails]]></label>

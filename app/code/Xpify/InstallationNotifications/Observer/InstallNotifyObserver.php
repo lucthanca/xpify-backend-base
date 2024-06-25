@@ -50,6 +50,7 @@ class InstallNotifyObserver implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
+        if (!$this->configProvider->getIsEnable()) return;
         /** @var string $shop */
         $shop = $observer->getData('shop');
         /** @var IApp $app */
@@ -89,7 +90,7 @@ class InstallNotifyObserver implements ObserverInterface
                     'shop'  => $shop,
                     'app'   => $app->getName() . " ({$app->getId()})",
                 ])
-                ->setFrom($sender)
+                ->setFromByScope($sender)
                 ->addTo($this->getReceiverEmail());
             if ($ccEmails = $this->getCCEmails()) {
                 foreach ($ccEmails as $ccEmail)
