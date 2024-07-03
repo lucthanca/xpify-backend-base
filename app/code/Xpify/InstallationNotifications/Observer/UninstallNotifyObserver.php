@@ -6,28 +6,5 @@ namespace Xpify\InstallationNotifications\Observer;
 class UninstallNotifyObserver extends InstallNotifyObserver
 {
     const TYPE = 'uninstall';
-
-/**
-     * @inheritDoc
-     */
-    protected function getEmailTemplateId(): string
-    {
-        return 'uninstall_notify_email';
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function getCCEmails() : ?array
-    {
-        return $this->configProvider->getUninstallCcEmails();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function getReceiverEmail() : ?string
-    {
-        return $this->configProvider->getUninstallReceiveEmail();
-    }
+    const TEMPLATE_ID = 'uninstall_notify_email';
 }

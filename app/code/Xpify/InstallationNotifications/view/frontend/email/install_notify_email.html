@@ -1,5 +1,5 @@
-<!--@subject {{trans "%shopName has just installed %appName app." appName=$app shopName=$shop}}  @-->
+<!--@subject {{trans "%shopName has just installed %appName app." appName=$app shopName=$queue.getShop()}}  @-->
 
 <table>
-    <tr>{{trans "New installation of %appName from %shopName." appName=$app shopName=$shop}}</tr>
+    <tr>{{trans "New installation of %appName from %shopName at %installed_time GMT" appName=$app shopName=$queue.getShop() installed_time=$queue.getCreatedAt()}}</tr>
 </table>

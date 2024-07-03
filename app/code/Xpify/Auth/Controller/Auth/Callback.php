@@ -169,6 +169,7 @@ HTML;
         $this->eventManager->dispatch('app_installed_successfully', [
             'app' => $app,
             'shop' => $session->getShop(),
+            'sess_id' => $session->getId(),
         ]);
         return $this->resultRedirectFactory->create()->setUrl($redirectUrl);
     }

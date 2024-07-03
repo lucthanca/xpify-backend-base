@@ -1,6 +1,6 @@
-<!--@subject {{trans "%shopName has just decided to uninstalled %app app." shopName=$shop app=$app}}  @-->
+<!--@subject {{trans "%shopName has just decided to uninstalled %app app." shopName=$queue.getShop() app=$app}}  @-->
 
 
 <table>
-    <tr>{{trans "%shopName just uninstall app." shopName=$shop app=$app}}</tr>
+    <tr>{{trans "%shopName just uninstall app at %time GMT." shopName=$queue.getShop() app=$app time=$queue.getCreatedAt()}}</tr>
 </table>
