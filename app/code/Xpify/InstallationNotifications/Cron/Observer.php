@@ -84,7 +84,16 @@ class Observer
         /** @var IQueue $item */
         foreach ($items as $item) {
             try {
+                $recipientMail = $this->emailRecipientResolver->getRecipientEmail($item);
+
+                // Skip if the recipient email is empty
                 $item->setStartAt($this->date->gmtDate());
+                if (empty($recipientMail)) {
+                    $item->setIsSent(IQueue::IS_SKIP);
+                    $item->setFinishAt($this->date->gmtDate());
+                    $this->queueResource->save($item);
+                    return;
+                }
                 $this->queueResource->save($item);
 
                 $app = $item->app();
@@ -93,8 +102,8 @@ class Observer
                 }
                 $this->inlineTranslation->suspend();
                 $sender = [
-                    'name' => $this->configProvider->getSenderName(),
-                    'email' => $this->configProvider->getSenderEmail(),
+                    'name' => $this->configProvider->getSenderName() ?: 'Xpify System',
+                    'email' => $this->configProvider->getSenderEmail() ?: 'system@bsscommerce.com',
                 ];
                 $this->transportBuilder
                     ->setTemplateIdentifier($this->getEmailTemplateId($item))
@@ -110,7 +119,7 @@ class Observer
                         'queue' => $item,
                     ])
                     ->setFromByScope($sender)
-                    ->addTo($this->emailRecipientResolver->getRecipientEmail($item));
+                    ->addTo($recipientMail);
                 if ($ccEmails = $this->emailRecipientResolver->getCCEmails($item)) {
                     foreach ($ccEmails as $ccEmail)
                         $this->transportBuilder->addCc(trim($ccEmail));

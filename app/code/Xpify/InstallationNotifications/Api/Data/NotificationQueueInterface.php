@@ -9,6 +9,7 @@ interface NotificationQueueInterface
 {
     const IS_SENT_YES = '1';
     const IS_PENDING = '0';
+    const IS_SKIP = '2';
 
     const ID = 'entity_id';
     const SESSION_ID = 'session_id';
