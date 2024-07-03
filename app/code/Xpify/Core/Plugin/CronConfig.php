@@ -54,7 +54,7 @@ class CronConfig
     {
         foreach ($jobs as &$groupJobs) {
             $groupJobs = array_filter($groupJobs, function($job) {
-                return !in_array($job['name'], self::UNWANTED_JOBS);
+                return isset($job['name']) && !in_array($job['name'], self::UNWANTED_JOBS);
             });
         }
         unset($groupJobs);
