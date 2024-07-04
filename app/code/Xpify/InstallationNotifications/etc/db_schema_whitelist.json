@@ -12,8 +12,7 @@
             "finish_at": true
         },
         "constraint": {
-            "PRIMARY": true,
-            "$XPIFY_NOTIFICATION_QUEUE_SESSION_ID_APP_ID": true
+            "PRIMARY": true
         }
     }
 }

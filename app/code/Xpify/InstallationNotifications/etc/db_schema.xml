@@ -14,9 +14,5 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
-        <constraint xsi:type="unique" referenceId="$XPIFY_NOTIFICATION_QUEUE_SESSION_ID_APP_ID">
-            <column name="session_id"/>
-            <column name="app_id"/>
-        </constraint>
     </table>
 </schema>
