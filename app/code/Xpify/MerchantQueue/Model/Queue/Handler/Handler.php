@@ -6,6 +6,6 @@ class Handler
 {
     public function execute()
     {
-        vadu_html('Hello World!');
+
     }
 }
