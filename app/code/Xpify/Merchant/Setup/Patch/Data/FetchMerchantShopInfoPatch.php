@@ -90,7 +90,8 @@ class FetchMerchantShopInfoPatch implements DataPatchInterface
                 $app = $this->appFactory->create();
                 $this->appResource->load($app, $merchant->getAppId());
                 if (!$app || !$app->getId()) {
-                    Logger::getLogger('xpify_merchant_data_patch.log')->debug('App not found for merchant: ' . $merchant->getId());
+                    Logger::getLogger('xpify_merchant_data_patch.log')->debug('App not found for merchant: ' . $merchant->getId());$iterator->next();
+                    continue;
                 }
                 $this->initializer->initialize($app);
 
