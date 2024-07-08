@@ -55,4 +55,7 @@
     <type name="Magento\Cron\Model\ConfigInterface">
         <plugin name="remove_unwanted_cron_jobs" type="Xpify\Core\Plugin\CronConfig" />
     </type>
+    <type name="Magento\Framework\MessageQueue\Consumer\ConfigInterface">
+        <plugin name="remove_unwanted_queue_consumers" type="Xpify\Core\Plugin\QueueConsumerConfig" />
+    </type>
 </config>

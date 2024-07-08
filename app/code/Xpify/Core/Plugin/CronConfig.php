@@ -48,7 +48,6 @@ class CronConfig
         'indexer_reindex_all_invalid',
         'indexer_update_all_views',
         'indexer_clean_all_changelogs',
-        'consumers_runner',
     ];
     public function afterGetJobs(ICronConfig $subject, $jobs)
     {

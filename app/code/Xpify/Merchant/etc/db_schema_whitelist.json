@@ -18,6 +18,8 @@
             "account_owner": true,
             "locale": true,
             "collaborator": true,
+            "email": true,
+            "name": true,
             "app_id": true,
             "created_at": true,
             "updated_at": true
