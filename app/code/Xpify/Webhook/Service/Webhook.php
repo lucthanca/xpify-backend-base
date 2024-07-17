@@ -96,11 +96,11 @@ class Webhook
      *
      * @see Xpify/Auth/etc/frontend/di.xml
      * @param string $merchantId
-     * @return void
+     * @return array - [updateOrCreate, existingHandlers]
      * @throws ShopifyException
      * @throws \Shopify\Exception\MissingArgumentException|\Exception
      */
-    public function register(string $merchantId): void
+    public function register(string $merchantId): array
     {
         $app = $this->appOrException();
         $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
@@ -150,6 +150,8 @@ class Webhook
         foreach ($existingHandlers as $handler) {
             $this->deleteWebhook($merchant, $handler);
         }
+
+        return [$updateOrCreate, $existingHandlers];
     }
 
     /**
