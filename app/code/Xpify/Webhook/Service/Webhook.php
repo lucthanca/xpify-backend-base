@@ -259,7 +259,7 @@ class Webhook
         try {
             $response = $client->query(data: $this->buildGetHandlersQuery($endcursor));
             if ($response->getStatusCode() !== 200) {
-                throw new ShopifyException(__("Failed to get existing webhook handlers for shop %1", $merchant->getShop())->render());
+                throw new ShopifyException(__("Failed to get existing webhook handlers for shop %1, decodedBody: %2", $merchant->getShop(), json_encode($response->getDecodedBody()))->render());
             }
             $decodedBody = $response->getDecodedBody();
 
