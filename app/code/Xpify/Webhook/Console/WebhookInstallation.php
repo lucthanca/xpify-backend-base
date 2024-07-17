@@ -20,6 +20,7 @@ class WebhookInstallation extends BaseCommand
     const OPT_SHOP = 'shop';
     const OPT_APP_ID = 'app_id';
     const OPT_ALL_STORE = 'all-store';
+    const DEFAULT_PROGRESS_CHAR = '>';
 
     private \Xpify\Merchant\Api\MerchantRepositoryInterface $merchantRepository;
     private \Xpify\App\Api\AppRepositoryInterface $appRepository;
