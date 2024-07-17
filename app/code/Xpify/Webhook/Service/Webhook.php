@@ -257,6 +257,9 @@ class Webhook
     {
         $client = $merchant->getGraphql();
         try {
+            if (!$client) {
+                throw new ShopifyException(__("No Access Token for shop %1.", $merchant->getShop())->render());
+            }
             $response = $client->query(data: $this->buildGetHandlersQuery($endcursor));
             if ($response->getStatusCode() !== 200) {
                 throw new ShopifyException(__("Failed to get existing webhook handlers for shop %1, decodedBody: %2", $merchant->getShop(), json_encode($response->getDecodedBody()))->render());
