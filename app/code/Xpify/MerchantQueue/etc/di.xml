@@ -20,4 +20,8 @@
             </argument>
         </arguments>
     </type>
+    <type name="Magento\Framework\MessageQueue\QueueInterface">
+        <plugin name="message_queue_retry"
+                type="Xpify\MerchantQueue\Plugin\HandleQueueMessageRejectPlugin"/>
+    </type>
 </config>

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="bss" translate="label" sortOrder="555" class="bss-logo">
+            <label><![CDATA[Bss Commerce]]></label>
+        </tab>
+        <section id="xpify">
+            <group id="webhook" translate="label" type="text" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="100">
+                <label><![CDATA[Webhook]]></label>
+                <field id="endpoint" translate="label" type="text" sortOrder="1000" showInDefault="1">
+                    <label><![CDATA[Endpoint]]></label>
+                </field>
+                <field id="username" translate="label" type="text" sortOrder="2000" showInDefault="1">
+                    <label><![CDATA[Username]]></label>
+                </field>
+                <field id="password" translate="label" type="text" sortOrder="3000" showInDefault="1">
+                    <label><![CDATA[Password]]></label>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

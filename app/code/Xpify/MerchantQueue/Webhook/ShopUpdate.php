@@ -9,26 +9,35 @@ use Xpify\Core\Helper\ShopifyContextInitializer;
 use Xpify\Core\Model\Logger;
 use Xpify\Merchant\Api\MerchantRepositoryInterface as IMerchantRepository;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
+use Xpify\MerchantQueue\Model\MerchantInfoPublisher;
 
 class ShopUpdate implements Handler
 {
     private IMerchantRepository $merchantRepository;
     private GetCurrentApp $currentApp;
     private ShopifyContextInitializer $initializer;
+    private Sender $webhookSender;
+    private MerchantInfoPublisher $publisher;
 
     /**
      * @param IMerchantRepository $merchantRepository
      * @param GetCurrentApp $currentApp
      * @param ShopifyContextInitializer $initializer
+     * @param Sender $webhookSender
+     * @param MerchantInfoPublisher $publisher
      */
     public function __construct(
         IMerchantRepository $merchantRepository,
         GetCurrentApp $currentApp,
-        ShopifyContextInitializer $initializer
+        ShopifyContextInitializer $initializer,
+        Sender $webhookSender,
+        MerchantInfoPublisher $publisher
     ) {
         $this->merchantRepository = $merchantRepository;
         $this->currentApp = $currentApp;
         $this->initializer = $initializer;
+        $this->webhookSender = $webhookSender;
+        $this->publisher = $publisher;
     }
 
     /**
@@ -100,6 +109,8 @@ class ShopUpdate implements Handler
         if (!$name || !$email) {
             return;
         }
+        $sessId = null;
+        $currentApp = null;
         try {
             $currentApp = $this->currentApp->get();
             $searchCriteria = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
@@ -116,9 +127,22 @@ class ShopUpdate implements Handler
             $merchant = reset($items);
             $merchant->setEmail($email);
             $merchant->setName($name);
+            $webhookOk = $this->webhookSender->send([
+                'myshopify_domain' => $merchant->getShop(),
+                'name' => $merchant->getName(),
+                'email' => $merchant->getEmail(),
+            ]);
             $this->merchantRepository->save($merchant);
+            $sessId = $merchant->getSessionId();
+            if (!$webhookOk) {
+                throw new \Exception('Failed to send webhook');
+            }
         } catch (\Throwable $e) {
             Logger::getLogger('shop_update_errors.log')->debug('Failed to fetch merchant for app ID: ' . $currentApp->getId() . ' and shop: ' . $shop . ' with error: ' . $e->getMessage());
+            // if failed. add to batchlog to execute sau nay
+            if ($sessId !== null && $currentApp !== null) {
+                $this->publisher->publish($sessId, $currentApp);
+            }
         }
     }
 }

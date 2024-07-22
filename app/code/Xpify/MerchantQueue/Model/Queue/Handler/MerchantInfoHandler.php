@@ -11,26 +11,31 @@ use Xpify\Core\Model\Logger;
 use Xpify\MerchantQueue\Api\Data\TopicDataInterface as ITopicData;
 use Xpify\Merchant\Api\MerchantRepositoryInterface as IMerchantRepository;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
+use Xpify\MerchantQueue\Webhook\Sender;
 
 class MerchantInfoHandler
 {
     private IAppRepository $appRepository;
     private IMerchantRepository $merchantRepository;
     private ShopifyContextInitializer $initializer;
+    private Sender $webhookSender;
 
     /**
      * @param IAppRepository $appRepository
      * @param IMerchantRepository $merchantRepository
      * @param ShopifyContextInitializer $initializer
+     * @param Sender $webhookSender
      */
     public function __construct(
         IAppRepository $appRepository,
         IMerchantRepository $merchantRepository,
-        ShopifyContextInitializer $initializer
+        ShopifyContextInitializer $initializer,
+        Sender $webhookSender
     ) {
         $this->appRepository = $appRepository;
         $this->merchantRepository = $merchantRepository;
         $this->initializer = $initializer;
+        $this->webhookSender = $webhookSender;
     }
 
     public function execute(ITopicData $rqData)
@@ -38,14 +43,17 @@ class MerchantInfoHandler
         $appId = $rqData->getAppId();
         if (!$appId) {
             $this->getLogger()->debug('App ID is missing in the request data.');
+            return false;
         }
         $sessId = $rqData->getSessionId();
         if (empty($sessId)) {
             $this->getLogger()->debug('Session ID is missing in the request data.');
+            return false;
         }
         $app = $this->appRepository->get($appId);
         if (!$app) {
             $this->getLogger()->debug('App not found for ID: ' . $appId);
+            return false;
         }
         $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
         $criteriaBuilder->addFilter(IMerchant::APP_ID, $appId);
@@ -54,6 +62,7 @@ class MerchantInfoHandler
         $searchResult = $this->merchantRepository->getList($criteriaBuilder->create());
         if (!$searchResult->getTotalCount()) {
             $this->getLogger()->debug('Merchant not found for app ID: ' . $appId . ' and session ID: ' . $sessId);
+            return false;
         }
         $items = $searchResult->getItems();
         /** @var IMerchant $merchant */
@@ -81,6 +90,14 @@ QUERY;
             $merchant->setEmail($shopInfo['email']);
             $merchant->setName($shopInfo['name']);
             $this->merchantRepository->save($merchant);
+            $webhookOk = $this->webhookSender->send([
+                'myshopify_domain' => $merchant->getShop(),
+                'name' => $merchant->getName(),
+                'email' => $merchant->getEmail(),
+            ]);
+            if (!$webhookOk) {
+                throw new \Exception('Failed to send webhook');
+            }
         } catch (\Throwable $e) {
             if ($e instanceof ShopifyException) {
                 throw $e;
