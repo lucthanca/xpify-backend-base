@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <fieldset name="other_configuration">
+        <fieldset name="webhook">
+            <settings>
+                <label translate="true">Data Webhook</label>
+                <dataScope>webhook</dataScope>
+                <collapsible>true</collapsible>
+                <opened>true</opened>
+            </settings>
+            <field name="enable" sortOrder="5" formElement="checkbox">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="source" xsi:type="string">block</item>
+                        <item name="default" xsi:type="number">0</item>
+                    </item>
+                </argument>
+                <settings>
+                    <dataType>boolean</dataType>
+                    <label translate="true">Enable</label>
+                    <dataScope>enable</dataScope>
+                </settings>
+                <formElements>
+                    <checkbox>
+                        <settings>
+                            <valueMap>
+                                <map name="false" xsi:type="number">0</map>
+                                <map name="true" xsi:type="number">1</map>
+                            </valueMap>
+                            <prefer>toggle</prefer>
+                        </settings>
+                    </checkbox>
+                </formElements>
+            </field>
+            <field name="endpoint" sortOrder="10" formElement="input">
+                <settings>
+                    <dataType>text</dataType>
+                    <validation>
+                        <rule name="validate-url" xsi:type="boolean">true</rule>
+                    </validation>
+                    <dataScope>endpoint</dataScope>
+                    <label translate="true">Endpoint</label>
+                </settings>
+            </field>
+            <field name="username" formElement="input" sortOrder="20">
+                <settings>
+                    <dataType>text</dataType>
+                    <dataScope>username</dataScope>
+                    <label translate="true">Username</label>
+                </settings>
+            </field>
+            <field name="password" formElement="input" sortOrder="30">
+                <settings>
+                    <dataType>text</dataType>
+                    <dataScope>password</dataScope>
+                    <label translate="true">Password</label>
+                </settings>
+            </field>
+        </fieldset>
+    </fieldset>
+</form>

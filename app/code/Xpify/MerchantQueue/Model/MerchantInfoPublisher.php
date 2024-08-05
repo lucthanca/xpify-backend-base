@@ -36,14 +36,20 @@ class MerchantInfoPublisher
      *
      * @param string $sessId
      * @param IApp $app
+     * @param int|null $type
+     * @param array $data
      * @return void
      */
-    public function publish(string $sessId, IApp $app): void
+    public function publish(string $sessId, IApp $app, ?int $type, array $data = []): void
     {
         /** @var \Xpify\MerchantQueue\Api\Data\TopicDataInterface $topicData */
         $topicData = $this->dataFactory->create();
         $topicData->setSessionId($sessId);
         $topicData->setAppId($app->getId());
+        $topicData->setType($type);
+        if (!empty($data)) {
+            $topicData->setData($data);
+        }
         $this->publisher->publish(self::TOPIC_NAME, $topicData);
     }
 }

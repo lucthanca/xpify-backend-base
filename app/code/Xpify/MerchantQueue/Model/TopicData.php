@@ -10,6 +10,7 @@ class TopicData implements TopicDataInterface
     protected $session_id;
     protected $app_id;
     protected $data;
+    protected int $type;
 
     public function getSessionId()
     {
@@ -42,5 +43,29 @@ class TopicData implements TopicDataInterface
     {
         $this->data = $data;
         return $this;
+    }
+
+    public function getType(): int
+    {
+        return (int) $this->type;
+    }
+
+    public function setType($type): TopicDataInterface
+    {
+        $this->type = (int) $type;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTypeAsName(): string
+    {
+        $TYPES = [
+            static::TYPE_MERCHANT_NEW => 'New Installation',
+            static::TYPE_MERCHANT_UPDATE => 'Merchant Info Update',
+            static::TYPE_MERCHANT_UNINSTALLED => 'Merchant Uninstalled',
+        ];
+        return $TYPES[$this->type] ?? 'Unknown';
     }
 }

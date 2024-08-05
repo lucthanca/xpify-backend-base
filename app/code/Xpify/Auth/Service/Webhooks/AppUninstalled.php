@@ -57,7 +57,7 @@ class AppUninstalled implements Handler
             foreach ($searchResults->getItems() as $merchant) {
                 $sessId = $merchant->getSessionId();
                 $this->merchantRepository->delete($merchant);
-                $this->eventManager->dispatch('app_uninstalled_success', ['shop' => $merchant->getShop(), 'app' => $this->currentApp->get(), 'sess_id' => $sessId]);
+                $this->eventManager->dispatch('app_uninstalled_success', ['shop' => $merchant->getShop(), 'app' => $this->currentApp->get(), 'sess_id' => $sessId, 'merchant' => $merchant]);
                 $this->getLogger()?->info(__("{$merchant->getShop()} đã gỡ cài đặt app {$this->currentApp->get()->getName()}")->render());
             }
         } catch (\Exception $e) {

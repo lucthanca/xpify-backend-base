@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Xpify\MerchantQueue\Model\Queue\Handler;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Shopify\Exception\ShopifyException;
 use Xpify\App\Api\AppRepositoryInterface as IAppRepository;
 use Xpify\Core\Helper\ShopifyContextInitializer;
@@ -19,23 +20,27 @@ class MerchantInfoHandler
     private IMerchantRepository $merchantRepository;
     private ShopifyContextInitializer $initializer;
     private Sender $webhookSender;
+    private \Magento\Framework\Serialize\Serializer\Json $json;
 
     /**
      * @param IAppRepository $appRepository
      * @param IMerchantRepository $merchantRepository
      * @param ShopifyContextInitializer $initializer
      * @param Sender $webhookSender
+     * @param Json $json
      */
     public function __construct(
         IAppRepository $appRepository,
         IMerchantRepository $merchantRepository,
         ShopifyContextInitializer $initializer,
-        Sender $webhookSender
+        Sender $webhookSender,
+        \Magento\Framework\Serialize\Serializer\Json $json
     ) {
         $this->appRepository = $appRepository;
         $this->merchantRepository = $merchantRepository;
         $this->initializer = $initializer;
         $this->webhookSender = $webhookSender;
+        $this->json = $json;
     }
 
     public function execute(ITopicData $rqData)
@@ -55,20 +60,49 @@ class MerchantInfoHandler
             $this->getLogger()->debug('App not found for ID: ' . $appId);
             return false;
         }
-        $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
-        $criteriaBuilder->addFilter(IMerchant::APP_ID, $appId);
-        $criteriaBuilder->addFilter(IMerchant::SESSION_ID, $sessId);
-        $criteriaBuilder->setPageSize(1);
-        $searchResult = $this->merchantRepository->getList($criteriaBuilder->create());
-        if (!$searchResult->getTotalCount()) {
-            $this->getLogger()->debug('Merchant not found for app ID: ' . $appId . ' and session ID: ' . $sessId);
-            return false;
-        }
-        $items = $searchResult->getItems();
-        /** @var IMerchant $merchant */
-        $merchant = reset($items);
 
-        $shop_info_query = <<<QUERY
+        try {
+            if ($rqData->getType() === ITopicData::TYPE_MERCHANT_UNINSTALLED) {
+                $merchantData = $rqData->getData();
+                if (empty($merchantData) || empty($merchantData[0])) {
+                    $this->getLogger()->debug(__('TYPE [%1] -- Merchant data is missing in the request data.', $rqData->getTypeAsName())->render());
+                    return false;
+                }
+                $merchantData = reset($merchantData);
+                $merchantData = $this->json->unserialize($merchantData);
+                $shop = $merchantData['shop'] ?? null;
+                if (!$shop) {
+                    $this->getLogger()->debug(__('TYPE [%1] -- Merchant data is missing in the request data.', $rqData->getTypeAsName())->render());
+                    return false;
+                }
+                $name = $merchantData['name'] ?? 'N/A';
+                $email = $merchantData['email'] ?? 'N/A';
+                $webhookOk = $this->webhookSender->send($app->getId(), [
+                    'myshopify_domain' => $shop,
+                    'name' => $name,
+                    'email' => $email,
+                    'type' => $rqData->getType(),
+                ]);
+                if (!$webhookOk) {
+                    throw new \Exception('Failed to send webhook');
+                }
+
+                return true;
+            }
+            $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
+            $criteriaBuilder->addFilter(IMerchant::APP_ID, $appId);
+            $criteriaBuilder->addFilter(IMerchant::SESSION_ID, $sessId);
+            $criteriaBuilder->setPageSize(1);
+            $searchResult = $this->merchantRepository->getList($criteriaBuilder->create());
+            if (!$searchResult->getTotalCount()) {
+                $this->getLogger()->debug('Merchant not found for app ID: ' . $appId . ' and session ID: ' . $sessId);
+                return false;
+            }
+            $items = $searchResult->getItems();
+            /** @var IMerchant $merchant */
+            $merchant = reset($items);
+            if ($rqData->getType() === ITopicData::TYPE_MERCHANT_NEW) {
+                $shop_info_query = <<<QUERY
 query GetShopInfo {
     shop {
 		name
@@ -77,23 +111,24 @@ query GetShopInfo {
 	}
 }
 QUERY;
-
-        try {
-            $this->initializer->initialize($app);
-            $response = $merchant->getGraphql()->query(data: $shop_info_query);
-            if ($response->getStatusCode() !== 200) {
-                $this->getLogger()->debug(__("Failed to fetch Shop Info: %1, app ID: %2", $merchant->getShop(), $merchant->getAppId())->render());
-                throw new ShopifyException('Failed to fetch Shop Info');
+                $this->initializer->initialize($app);
+                $response = $merchant->getGraphql()->query(data: $shop_info_query);
+                if ($response->getStatusCode() !== 200) {
+                    $this->getLogger()->debug(__("Failed to fetch Shop Info: %1, app ID: %2", $merchant->getShop(), $merchant->getAppId())->render());
+                    throw new ShopifyException('Failed to fetch Shop Info');
+                }
+                $decodedBody = $response->getDecodedBody();
+                $shopInfo = $decodedBody['data']['shop'];
+                $merchant->setEmail($shopInfo['email']);
+                $merchant->setName($shopInfo['name']);
+                $this->merchantRepository->save($merchant);
             }
-            $decodedBody = $response->getDecodedBody();
-            $shopInfo = $decodedBody['data']['shop'];
-            $merchant->setEmail($shopInfo['email']);
-            $merchant->setName($shopInfo['name']);
-            $this->merchantRepository->save($merchant);
-            $webhookOk = $this->webhookSender->send([
+
+            $webhookOk = $this->webhookSender->send($app->getId(), [
                 'myshopify_domain' => $merchant->getShop(),
                 'name' => $merchant->getName(),
                 'email' => $merchant->getEmail(),
+                'type' => $rqData->getType(),
             ]);
             if (!$webhookOk) {
                 throw new \Exception('Failed to send webhook');

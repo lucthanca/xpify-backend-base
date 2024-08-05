@@ -4,4 +4,7 @@
     <event name="app_installed_successfully">
         <observer name="fetch_merchant_info" instance="Xpify\MerchantQueue\Observer\NewInstallationObserver"/>
     </event>
+    <event name="app_uninstalled_success">
+        <observer name="push_webhook_app_uninstalled" instance="Xpify\MerchantQueue\Observer\AppUninstallObserver"/>
+    </event>
 </config>

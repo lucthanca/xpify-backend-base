@@ -11,7 +11,7 @@ use Xpify\MerchantQueue\Model\MerchantInfoPublisher;
 
 class NewInstallationObserver implements IObserver
 {
-    private MerchantInfoPublisher $publisher;
+    protected MerchantInfoPublisher $publisher;
 
     /**
      * @param MerchantInfoPublisher $publisher
@@ -32,7 +32,7 @@ class NewInstallationObserver implements IObserver
         $app = $observer->getData('app');
         $sessId = $observer->getData('sess_id');
         try {
-            $this->publisher->publish($sessId, $app);
+            $this->publisher->publish($sessId, $app, \Xpify\MerchantQueue\Api\Data\TopicDataInterface::TYPE_MERCHANT_NEW);
         } catch (\Throwable $e) {
             Logger::getLogger('new_installation_observer.log')->debug("[{$app->getId()}]" . 'Failed to publish merchant info for ' . $shop . ' with error: ' . $e->getMessage());
         }

@@ -3,39 +3,56 @@ declare(strict_types=1);
 
 namespace Xpify\MerchantQueue\Webhook;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\HTTP\Adapter\Curl;
 use Magento\Framework\HTTP\Adapter\CurlFactory;
+use Magento\Framework\Serialize\Serializer\Json;
 use Xpify\Core\Model\Logger;
-use Xpify\MerchantQueue\Model\ConfigProvider;
 
 class Sender
 {
     private CurlFactory $curlFactory;
-    private ConfigProvider $config;
+    private \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig;
+    private \Magento\Framework\Serialize\Serializer\Json $json;
 
     /**
      * @param CurlFactory $curlFactory
-     * @param ConfigProvider $config
+     * @param ScopeConfigInterface $scopeConfig
+     * @param Json $json
      */
     public function __construct(
         CurlFactory $curlFactory,
-        ConfigProvider $config
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Serialize\Serializer\Json $json
     ) {
         $this->curlFactory = $curlFactory;
-        $this->config = $config;
+        $this->scopeConfig = $scopeConfig;
+        $this->json = $json;
     }
 
     /**
      * Send webhook request
      *
+     * @param string|int $appId
      * @param array $data
      * @return bool
      */
-    public function send(array $data)
+    public function send($appId, array $data)
     {
-        $username = $this->config->getWebhookUsername();
-        $password = $this->config->getWebhookPassword();
-        $endpoint = $this->config->getWebhookEndpoint();
+        $webhookConfig = $this->scopeConfig->getValue(\Xpify\MerchantQueue\Config::getWebhookConfigPath($appId));
+        if (empty($webhookConfig)) {
+            return true;
+        }
+        $webhookConfig = $this->json->unserialize($webhookConfig);
+        $enabled = $webhookConfig['enable'] ?? false;
+        // If webhook is disabled, skip
+        if (!$enabled) {
+            return true;
+        }
+        // if credentials or endpoint is missing, mark as failed.
+        $username = $webhookConfig['username'] ?? null;
+        $password = $webhookConfig['password'] ?? null;
+        $endpoint = $webhookConfig['endpoint'] ?? null;
         if (!$username || !$password || !$endpoint) {
             return false;
         }

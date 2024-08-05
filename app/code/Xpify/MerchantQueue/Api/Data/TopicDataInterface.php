@@ -5,6 +5,10 @@ namespace Xpify\MerchantQueue\Api\Data;
 
 interface TopicDataInterface
 {
+    const TYPE_MERCHANT_NEW = 1;
+    const TYPE_MERCHANT_UPDATE = 2;
+    const TYPE_MERCHANT_UNINSTALLED = 3;
+
     /**
      * Get session id
      *
@@ -34,6 +38,21 @@ interface TopicDataInterface
      * @return self
      */
     public function setAppId($appId);
+
+    /**
+     * Get a queue type
+     *
+     * @return int
+     */
+    public function getType(): int;
+
+    /**
+     * Set queue type
+     *
+     * @param int $type
+     * @return self
+     */
+    public function setType($type): self;
 
     /**
      * Get topic data
