@@ -112,7 +112,7 @@
                         <notice translate="true">Search Google :)</notice>
                     </settings>
                 </field>
-                <field name="log_on_success" sortOrder="150" formElement="checkbox">
+                <field name="log_on_success" sortOrder="500" formElement="checkbox">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
                             <item name="source" xsi:type="string">block</item>
@@ -122,7 +122,7 @@
                     <settings>
                         <dataType>boolean</dataType>
                         <label translate="true">Log on success</label>
-                        <dataScope>enable</dataScope>
+                        <dataScope>log_on_success</dataScope>
                         <notice translate="true">Send message even the webhook runs smoothly!</notice>
                     </settings>
                     <formElements>
