@@ -88,12 +88,14 @@ class Sender
                         )
                     );
                 } catch (\Throwable $e) {
-                    Logger::getLogger('telegram_sender_failure.log')->debug(
-                        sprintf(
-                            'Failed to send message to telegram channel. Error: %s',
-                            $e->getMessage()
-                        )
+                    $failedMsg = sprintf(
+                        'Failed to send message to telegram channel. Error: %s',
+                        $e->getMessage()
                     );
+                    if ($e->getCode() === 1400) {
+                        $failedMsg = $e->getMessage();
+                    }
+                    Logger::getLogger('telegram_sender_failure.log')->debug($failedMsg);
                 }
             }
             throw new LocalizedException(__("Webhook request failed with HTTP code: %1, check log file: var/log/webhook_sender_failure.log", $httpCode), null, 1400);

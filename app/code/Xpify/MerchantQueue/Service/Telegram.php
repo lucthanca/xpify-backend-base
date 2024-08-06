@@ -44,7 +44,7 @@ class Telegram
      *
      * @param string $message
      * @return void
-     * @throws ClientExceptionInterface
+     * @throws ClientExceptionInterface|\Exception
      */
     public function sendMessage(string $message): void
     {
@@ -59,7 +59,15 @@ class Telegram
             if ($key > 0) {
                 usleep(500000);
             }
-            $this->send($msg);
+            $response = $this->send($msg);
+            $decodedBody = $response->getDecodedBody();
+            if (is_string($decodedBody)) {
+                throw new \Exception("error body: " . $decodedBody);
+            }
+            if (isset($decodedBody['ok']) && $decodedBody['ok'] === false) {
+                // throw telegram error with message and code
+                throw new \Exception("Telegram API error. error code: " . $decodedBody['error_code'] ?? "No code" . ". Description: " . $decodedBody['description'] ?? "No description!", 1400);
+            }
         }
     }
 
