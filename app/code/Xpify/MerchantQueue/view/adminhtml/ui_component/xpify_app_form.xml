@@ -112,6 +112,31 @@
                         <notice translate="true">Search Google :)</notice>
                     </settings>
                 </field>
+                <field name="log_on_success" sortOrder="150" formElement="checkbox">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="source" xsi:type="string">block</item>
+                            <item name="default" xsi:type="number">0</item>
+                        </item>
+                    </argument>
+                    <settings>
+                        <dataType>boolean</dataType>
+                        <label translate="true">Log on success</label>
+                        <dataScope>enable</dataScope>
+                        <notice translate="true">Send message even the webhook runs smoothly!</notice>
+                    </settings>
+                    <formElements>
+                        <checkbox>
+                            <settings>
+                                <valueMap>
+                                    <map name="false" xsi:type="number">0</map>
+                                    <map name="true" xsi:type="number">1</map>
+                                </valueMap>
+                                <prefer>toggle</prefer>
+                            </settings>
+                        </checkbox>
+                    </formElements>
+                </field>
             </fieldset>
         </fieldset>
     </fieldset>

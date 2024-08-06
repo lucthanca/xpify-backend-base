@@ -70,23 +70,16 @@ class Sender
         $responseBody = $curl->read();
         $response = \Zend_Http_Response::fromString($responseBody);
         $httpCode = $response->getStatus();
-        if ($httpCode != 200) {
-            Logger::getLogger('webhook_sender_failure.log')->debug(sprintf('Failed to send webhook request. HTTP code: %s, body: %s', $httpCode, $responseBody));
-            $telegramConfig = $webhookConfig[SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY];
+        $telegramConfig = $webhookConfig[SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY];
+        $shouldLogToTelegram = $telegramConfig['log_on_success'] ?? false;
+
+        $notifyToTelegram = function (string $msg) use ($telegramConfig) {
             $enabled = $telegramConfig['enable'] ?? false;
-            $shouldLogToTelegramChannel = $enabled && !empty($telegramConfig['bot_token']) && !empty($telegramConfig['chat_id']);
-            if ($shouldLogToTelegramChannel) {
+            $canSendLog = $enabled && !empty($telegramConfig['bot_token']) && !empty($telegramConfig['chat_id']);
+            if ($canSendLog) {
                 $telegramLogger = new Telegram($telegramConfig['bot_token'], $telegramConfig['chat_id']);
-                $logTime = gmdate('c');
                 try {
-                    $telegramLogger->sendMessage(
-                        sprintf(
-                            "<b>[%s]</b>" . chr(10) . "Failed to send webhook request." . chr(10).chr(10) . "<b>HTTP code:</b> %s" . chr(10) . "<b>Body:</b> %s",
-                            $logTime,
-                            $httpCode,
-                            htmlspecialchars($response->getBody())
-                        )
-                    );
+                    $telegramLogger->sendMessage($msg);
                 } catch (\Throwable $e) {
                     $failedMsg = sprintf(
                         'Failed to send message to telegram channel. Error: %s',
@@ -98,6 +91,18 @@ class Sender
                     Logger::getLogger('telegram_sender_failure.log')->debug($failedMsg);
                 }
             }
+        };
+        if ($httpCode === 200 && $shouldLogToTelegram) {
+            $notifyToTelegram(sprintf("<b>[%s]</b>".chr(10)."Webhook sent ok.".chr(10)."<b>payload</b>: %s", gmdate('c'), json_encode($data)));
+        }
+        if ($httpCode != 200) {
+            Logger::getLogger('webhook_sender_failure.log')->debug(sprintf('Failed to send webhook request. HTTP code: %s, body: %s', $httpCode, $responseBody));
+            $notifyToTelegram(sprintf(
+                "<b>[%s]</b>" . chr(10) . "Failed to send webhook request." . chr(10).chr(10) . "<b>HTTP code:</b> %s" . chr(10) . "<b>Body:</b> %s",
+                gmdate('c'),
+                $httpCode,
+                htmlspecialchars($response->getBody())
+            ));
             throw new LocalizedException(__("Webhook request failed with HTTP code: %1, check log file: var/log/webhook_sender_failure.log", $httpCode), null, 1400);
         }
     }
