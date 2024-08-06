@@ -56,6 +56,63 @@
                     <label translate="true">Password</label>
                 </settings>
             </field>
+            <fieldset name="telegram_notification" sortOrder="100">
+                <settings>
+                    <label translate="true">Telegram Notification</label>
+                    <dataScope>telegram</dataScope>
+                    <collapsible>true</collapsible>
+                    <opened>true</opened>
+                </settings>
+                <field name="enable" sortOrder="150" formElement="checkbox">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="source" xsi:type="string">block</item>
+                            <item name="default" xsi:type="number">0</item>
+                        </item>
+                    </argument>
+                    <settings>
+                        <dataType>boolean</dataType>
+                        <label translate="true">Enable</label>
+                        <dataScope>enable</dataScope>
+                        <notice translate="true">Using Telegram BOT to send a message to a configured chat group!</notice>
+                    </settings>
+                    <formElements>
+                        <checkbox>
+                            <settings>
+                                <valueMap>
+                                    <map name="false" xsi:type="number">0</map>
+                                    <map name="true" xsi:type="number">1</map>
+                                </valueMap>
+                                <prefer>toggle</prefer>
+                            </settings>
+                        </checkbox>
+                    </formElements>
+                </field>
+                <field name="bot_token" formElement="input" sortOrder="200">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="elementTmpl" xsi:type="string">Xpify_MerchantQueue/form/element/password</item>
+                        </item>
+                    </argument>
+                    <settings>
+                        <dataType>text</dataType>
+                        <dataScope>bot_token</dataScope>
+                        <label translate="true">Bot Token</label>
+                        <tooltip>
+                            <description translate="true">Click here to know how to get the token from BotFather</description>
+                            <link>https://core.telegram.org/bots#how-do-i-create-a-bot</link>
+                        </tooltip>
+                    </settings>
+                </field>
+                <field name="chat_id" formElement="input" sortOrder="300">
+                    <settings>
+                        <dataType>text</dataType>
+                        <dataScope>chat_id</dataScope>
+                        <label translate="true">Chat ID</label>
+                        <notice translate="true">Search Google :)</notice>
+                    </settings>
+                </field>
+            </fieldset>
         </fieldset>
     </fieldset>
 </form>

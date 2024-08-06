@@ -9,10 +9,10 @@ use Shopify\Exception\ShopifyException;
 use Xpify\App\Api\AppRepositoryInterface as IAppRepository;
 use Xpify\Core\Helper\ShopifyContextInitializer;
 use Xpify\Core\Model\Logger;
-use Xpify\MerchantQueue\Api\Data\TopicDataInterface as ITopicData;
-use Xpify\Merchant\Api\MerchantRepositoryInterface as IMerchantRepository;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
-use Xpify\MerchantQueue\Webhook\Sender;
+use Xpify\Merchant\Api\MerchantRepositoryInterface as IMerchantRepository;
+use Xpify\MerchantQueue\Api\Data\TopicDataInterface as ITopicData;
+use Xpify\MerchantQueue\Service\Sender;
 
 class MerchantInfoHandler
 {
@@ -26,7 +26,7 @@ class MerchantInfoHandler
      * @param IAppRepository $appRepository
      * @param IMerchantRepository $merchantRepository
      * @param ShopifyContextInitializer $initializer
-     * @param Sender $webhookSender
+     * @param \Xpify\MerchantQueue\Service\Sender $webhookSender
      * @param Json $json
      */
     public function __construct(
@@ -77,16 +77,12 @@ class MerchantInfoHandler
                 }
                 $name = $merchantData['name'] ?? 'N/A';
                 $email = $merchantData['email'] ?? 'N/A';
-                $webhookOk = $this->webhookSender->send($app->getId(), [
+                $this->webhookSender->send($app->getId(), [
                     'myshopify_domain' => $shop,
                     'name' => $name,
                     'email' => $email,
                     'type' => $rqData->getType(),
                 ]);
-                if (!$webhookOk) {
-                    throw new \Exception('Failed to send webhook');
-                }
-
                 return true;
             }
             $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
@@ -124,21 +120,20 @@ QUERY;
                 $this->merchantRepository->save($merchant);
             }
 
-            $webhookOk = $this->webhookSender->send($app->getId(), [
+            $this->webhookSender->send($app->getId(), [
                 'myshopify_domain' => $merchant->getShop(),
                 'name' => $merchant->getName(),
                 'email' => $merchant->getEmail(),
                 'type' => $rqData->getType(),
             ]);
-            if (!$webhookOk) {
-                throw new \Exception('Failed to send webhook');
-            }
         } catch (\Throwable $e) {
-            if ($e instanceof ShopifyException) {
+            $shouldThrow = ($e instanceof LocalizedException && $e->getCode() === 1400) || $e instanceof ShopifyException;
+            if ($shouldThrow) {
                 throw $e;
             }
-            $this->getLogger()->debug('Failed to fetch shop info for merchant with ID: ' . $merchant->getId() . ' with error: ' . $e->getMessage());
-            throw new LocalizedException(__("Failed to fetch shop info for merchant with ID: %1", $merchant->getId()));
+            $merchantIdOrSId = isset($merchant) ? $merchant?->getId() : $sessId;
+            $this->getLogger()->debug('Failed to fetch shop info for merchant: ' . $merchantIdOrSId . ' with error: ' . $e->getMessage());
+            throw new LocalizedException(__("Failed to fetch shop info for merchant: %1", $merchantIdOrSId));
         }
         return true;
     }

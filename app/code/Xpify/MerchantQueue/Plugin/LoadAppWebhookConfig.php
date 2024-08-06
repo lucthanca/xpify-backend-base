@@ -5,6 +5,7 @@ namespace Xpify\MerchantQueue\Plugin;
 
 use Magento\Framework\App\Request\DataPersistorInterface as IDataPersistor;
 use Magento\Framework\Serialize\Serializer\Json;
+use Xpify\App\Ui\Component\Form\AppDataProvider;
 use Xpify\App\Ui\Component\Form\AppDataProvider as PluggedAppDataProvider;
 use Magento\Framework\App\RequestInterface as IRequest;
 use Magento\Framework\App\Config\ScopeConfigInterface as IScopeConfig;
@@ -58,8 +59,11 @@ class LoadAppWebhookConfig
             $this->dataPersistor->clear('xpify_app_config_webhook');
         }
 
+        if (!empty($appWebhookConfig[SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY]['bot_token'])) {
+            $appWebhookConfig[SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY]['bot_token'] = SaveAppWebhookConfig::TELEGRAM_BOT_TOKEN_PLACEHOLDER;
+        }
         if (!empty($appWebhookConfig)) {
-            $loadedData[$appId][SaveAppWebhookConfig::WEBHOOK_FORM_KEY]['webhook'] = $appWebhookConfig;
+            $loadedData[$appId][AppDataProvider::OTHER_CONFIGURATION_FIELDSET_NAME][SaveAppWebhookConfig::WEBHOOK_FORM_SCOPE_KEY] = $appWebhookConfig;
         }
         return $loadedData;
     }

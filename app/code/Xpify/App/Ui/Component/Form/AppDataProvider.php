@@ -10,6 +10,9 @@ use Xpify\App\Api\Data\AppInterface as IApp;
 
 class AppDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
 {
+    const GENERAL_FIELDSET_NAME = "general";
+    const OTHER_CONFIGURATION_FIELDSET_NAME = 'other_configuration';
+
     protected $loadedData;
     private $dataPersistor;
     private $request;
@@ -54,7 +57,7 @@ class AppDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
         if (!empty($items)) {
             foreach ($items as $item) {
                 $data = $item->getData();
-                $this->loadedData[$item->getId()]['general'] = $data;
+                $this->loadedData[$item->getId()][static::GENERAL_FIELDSET_NAME] = $data;
             }
         }
         $data = $this->dataPersistor->get('xpify_app');
@@ -64,12 +67,12 @@ class AppDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
                 $items->addFieldToFilter(IApp::ID, $data['entity_id']);
             }
             if ($items->getSize() === 0) {
-                $this->loadedData[$data['entity_id'] ?? ""]['general'] = $data;
+                $this->loadedData[$data['entity_id'] ?? ""][static::GENERAL_FIELDSET_NAME] = $data;
             } else {
                 foreach ($items as $item) {
                     if ($data['entity_id'] === $item->getId()) {
                         $key = $this->request->getParam('id') ?? "";
-                        $this->loadedData[$key]['general'] = $data;
+                        $this->loadedData[$key][static::GENERAL_FIELDSET_NAME] = $data;
                     }
                 }
             }

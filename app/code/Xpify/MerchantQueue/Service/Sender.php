@@ -1,13 +1,15 @@
 <?php
 declare(strict_types=1);
 
-namespace Xpify\MerchantQueue\Webhook;
+namespace Xpify\MerchantQueue\Service;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\HTTP\Adapter\Curl;
 use Magento\Framework\HTTP\Adapter\CurlFactory;
 use Magento\Framework\Serialize\Serializer\Json;
 use Xpify\Core\Model\Logger;
+use Xpify\MerchantQueue\Plugin\SaveAppWebhookConfig;
 
 class Sender
 {
@@ -35,43 +37,66 @@ class Sender
      *
      * @param string|int $appId
      * @param array $data
-     * @return bool
+     * @return void
+     * @throws LocalizedException|\InvalidArgumentException
      */
-    public function send($appId, array $data)
+    public function send($appId, array $data): void
     {
         $webhookConfig = $this->scopeConfig->getValue(\Xpify\MerchantQueue\Config::getWebhookConfigPath($appId));
         if (empty($webhookConfig)) {
-            return true;
+            return;
         }
         $webhookConfig = $this->json->unserialize($webhookConfig);
         $enabled = $webhookConfig['enable'] ?? false;
         // If webhook is disabled, skip
         if (!$enabled) {
-            return true;
+            return;
         }
         // if credentials or endpoint is missing, mark as failed.
         $username = $webhookConfig['username'] ?? null;
         $password = $webhookConfig['password'] ?? null;
         $endpoint = $webhookConfig['endpoint'] ?? null;
         if (!$username || !$password || !$endpoint) {
-            return false;
+            throw new \InvalidArgumentException('Webhook configuration is invalid.');
         }
         /** @var Curl $curl */
         $curl = $this->curlFactory->create();
         // set basic auth
         $curl->addOption(CURLOPT_USERPWD, $username . ':' . $password);
         $curl->addOption(CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        $headers = [
-            'Content-Type: application/json'
-        ];
+        $headers = ['Content-Type: application/json'];
 
         $curl->write('POST', $endpoint, '1.1', $headers, json_encode($data));
         $responseBody = $curl->read();
-        $httpCode = \Zend_Http_Response::extractCode($responseBody);
+        $response = \Zend_Http_Response::fromString($responseBody);
+        $httpCode = $response->getStatus();
         if ($httpCode != 200) {
             Logger::getLogger('webhook_sender_failure.log')->debug(sprintf('Failed to send webhook request. HTTP code: %s, body: %s', $httpCode, $responseBody));
-            return false;
+            $telegramConfig = $webhookConfig[SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY];
+            $enabled = $telegramConfig['enable'] ?? false;
+            $shouldLogToTelegramChannel = $enabled && !empty($telegramConfig['bot_token']) && !empty($telegramConfig['chat_id']);
+            if ($shouldLogToTelegramChannel) {
+                $telegramLogger = new Telegram($telegramConfig['bot_token'], $telegramConfig['chat_id']);
+                $logTime = gmdate('c');
+                try {
+                    $telegramLogger->sendMessage(
+                        sprintf(
+                            "<b>[%s]</b>" . chr(10) . "Failed to send webhook request." . chr(10).chr(10) . "<b>HTTP code:</b> %s" . chr(10) . "<b>Body:</b> %s",
+                            $logTime,
+                            $httpCode,
+                            htmlspecialchars($response->getBody())
+                        )
+                    );
+                } catch (\Throwable $e) {
+                    Logger::getLogger('telegram_sender_failure.log')->debug(
+                        sprintf(
+                            'Failed to send message to telegram channel. Error: %s',
+                            $e->getMessage()
+                        )
+                    );
+                }
+            }
+            throw new LocalizedException(__("Webhook request failed with HTTP code: %1, check log file: var/log/webhook_sender_failure.log", $httpCode), null, 1400);
         }
-        return true;
     }
 }
