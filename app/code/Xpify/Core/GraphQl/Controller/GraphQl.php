@@ -233,6 +233,8 @@ class GraphQl implements FrontControllerInterface
 
         $jsonResult->setHttpResponseCode($statusCode);
         $jsonResult->setData($result);
+        $eventManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Event\ManagerInterface::class);
+        $eventManager->dispatch('xpify_graphql_before_render_response', ['response_result' => $jsonResult, 'result' => $result]);
         $jsonResult->renderResult($this->httpResponse);
 
         // log information about the query, unless it is an introspection query
