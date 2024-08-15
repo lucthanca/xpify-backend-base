@@ -72,7 +72,7 @@ class Sender
 //        $curl->addOption(CURLOPT_SSL_VERIFYHOST, 0);
 //        $curl->addOption(CURLOPT_FOLLOWLOCATION, true);
 //        $curl->addOption(CURLOPT_VERBOSE, true);
-        $curl->addOption(CURLOPT_CAINFO, '/home/vadu/.ssl/rootCA.pem');
+//        $curl->addOption(CURLOPT_CAINFO, '/home/vadu/.ssl/rootCA.pem');
         $headers = ['Content-Type: application/json'];
 
 //        $streamVerboseHandle = fopen('php://temp', 'w+');
