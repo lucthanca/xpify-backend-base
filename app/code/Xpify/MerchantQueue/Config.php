@@ -15,4 +15,15 @@ final class Config
     {
         return "xpify/merchant_queue/webhook:{$appId}";
     }
+
+    /**
+     * Get telegram config path
+     *
+     * @param string|int $appId
+     * @return string
+     */
+    public static function getTelegramConfigPath(string|int $appId): string
+    {
+        return "xpify/merchant_queue/telegram:{$appId}";
+    }
 }

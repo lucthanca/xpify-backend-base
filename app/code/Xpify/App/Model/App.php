@@ -14,6 +14,16 @@ class App extends AbstractModel implements IApp
         $this->_init(\Xpify\App\Model\ResourceModel\App::class);
     }
 
+    public function getId()
+    {
+        return $this->getData(self::ID);
+    }
+
+    public function setId($value): IApp
+    {
+        return $this->setData(self::ID, $value);
+    }
+
     public function getToken(): ?string
     {
         return $this->getData(self::TOKEN);

@@ -18,7 +18,8 @@ class SaveAppWebhookConfig
     const WEBHOOK_FORM_SCOPE_KEY = 'webhook';
     const WEBHOOK_TELEGRAM_FORM_SCOPE_KEY = 'telegram';
     const TELEGRAM_BOT_TOKEN_PLACEHOLDER = '********';
-
+    const XPIFY_APP_CONFIG_WEBHOOK_PERISTOR_KEY = 'xpify_app_config_webhook';
+    const XPIFY_APP_CONFIG_TELEGRAM_PERISTOR_KEY = 'xpify_app_config_telegram';
     private IManager $messageManager;
     private IConfigWriter $configWriter;
     private \Magento\Framework\Serialize\Serializer\Json $json;
@@ -59,39 +60,43 @@ class SaveAppWebhookConfig
     {
         $postData = $subject->getRequest()->getPost();
         $webhookConfig = $postData->toArray()[AppDataProvider::OTHER_CONFIGURATION_FIELDSET_NAME][static::WEBHOOK_FORM_SCOPE_KEY] ?? [];
+        $telegramNotiConfig = $postData->toArray()[AppDataProvider::OTHER_CONFIGURATION_FIELDSET_NAME][static::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY] ?? [];
         $appId = $postData->toArray()[AppDataProvider::GENERAL_FIELDSET_NAME]['entity_id'] ?? null;
 
         try {
-            if (empty($webhookConfig) || empty($appId)) {
-                if (empty($appId)) {
-                    throw new \Exception('App ID empty!');
-                }
+            if (empty($appId)) {
+                throw new \Exception('App ID empty!');
+            }
+            if (empty($webhookConfig) && empty($telegramNotiConfig)) {
                 return $result;
             }
+            $this->configWriter->save(Config::getWebhookConfigPath($appId), $this->json->serialize($webhookConfig));
+
             // check telegram bot_token if bot_token field is ********, get current value from config and set it to webhookConfig
-            $webhookKey = static::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY;
             $placeholder = static::TELEGRAM_BOT_TOKEN_PLACEHOLDER;
 
-            $botToken = $webhookConfig[$webhookKey]['bot_token'] ?? null;
+            $botToken = $telegramNotiConfig['bot_token'] ?? null;
 
             if ($botToken === $placeholder) {
-                $storedWebhookConfig = $this->scopeConfig->getValue(Config::getWebhookConfigPath($appId));
+                $storedWebhookConfig = $this->scopeConfig->getValue(Config::getTelegramConfigPath($appId));
 
                 if (!empty($storedWebhookConfig)) {
                     $currentWebhookConfig = $this->json->unserialize($storedWebhookConfig);
-                    $botToken = $currentWebhookConfig[$webhookKey]['bot_token'] ?? '';
+                    $botToken = $currentWebhookConfig['bot_token'] ?? '';
                 } else {
                     $botToken = '';
                 }
 
-                $webhookConfig[$webhookKey]['bot_token'] = $botToken;
+                $telegramNotiConfig['bot_token'] = $botToken;
             }
-            $this->configWriter->save(Config::getWebhookConfigPath($appId), $this->json->serialize($webhookConfig));
+
+            $this->configWriter->save(Config::getTelegramConfigPath($appId), $this->json->serialize($telegramNotiConfig));
             $this->cache->cleanType('config');
         } catch (\Throwable $e) {
             $this->messageManager->getMessages(true);
             $this->messageManager->addErrorMessage(__("Failed to save 'Configuration / Data Webhook' config! Debug di. %1", $e->getMessage()));
-            $this->dataPersistor->set('xpify_app_config_webhook', $webhookConfig);
+            $this->dataPersistor->set(static::XPIFY_APP_CONFIG_WEBHOOK_PERISTOR_KEY, $webhookConfig);
+            $this->dataPersistor->set(static::XPIFY_APP_CONFIG_TELEGRAM_PERISTOR_KEY, $telegramNotiConfig);
         }
 
         return $result;

@@ -5,10 +5,12 @@ namespace Xpify\App\Ui\Component\Form;
 
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\App\RequestInterface;
+use Magento\Ui\DataProvider\Modifier\PoolInterface as IPool;
 use Xpify\App\Model\ResourceModel\App\CollectionFactory as FAppCollection;
 use Xpify\App\Api\Data\AppInterface as IApp;
+use Magento\Ui\DataProvider\ModifierPoolDataProvider;
 
-class AppDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
+class AppDataProvider extends ModifierPoolDataProvider
 {
     const GENERAL_FIELDSET_NAME = "general";
     const OTHER_CONFIGURATION_FIELDSET_NAME = 'other_configuration';
@@ -27,6 +29,7 @@ class AppDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
      * @param string $requestFieldName
      * @param array $meta
      * @param array $data
+     * @param IPool|null $pool
      */
     public function __construct(
         FAppCollection $collectionFactory,
@@ -36,14 +39,15 @@ class AppDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
         $primaryFieldName,
         $requestFieldName,
         array $meta = [],
-        array $data = []
+        array $data = [],
+        IPool $pool = null
     ) {
         // set collection
         $this->collection = $collectionFactory->create();
         $this->dataPersistor = $dataPersistor;
         $this->request = $request;
         $this->collectionFactory = $collectionFactory;
-        parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
+        parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data, $pool);
     }
 
     public function getData()

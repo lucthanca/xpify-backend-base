@@ -49,21 +49,34 @@ class LoadAppWebhookConfig
         if (empty($appId)) {
             return $loadedData;
         }
-        $appWebhookConfig = $this->dataPersistor->get('xpify_app_config_webhook');
+        $appWebhookConfig = $this->dataPersistor->get(SaveAppWebhookConfig::XPIFY_APP_CONFIG_WEBHOOK_PERISTOR_KEY);
         if (empty($appWebhookConfig)) {
             $appWebhookConfig = $this->scopeConfig->getValue(Config::getWebhookConfigPath($appId));
             if (!empty($appWebhookConfig)) {
                 $appWebhookConfig = $this->json->unserialize($appWebhookConfig);
             }
         } else {
-            $this->dataPersistor->clear('xpify_app_config_webhook');
+            $this->dataPersistor->clear(SaveAppWebhookConfig::XPIFY_APP_CONFIG_WEBHOOK_PERISTOR_KEY);
         }
 
-        if (!empty($appWebhookConfig[SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY]['bot_token'])) {
-            $appWebhookConfig[SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY]['bot_token'] = SaveAppWebhookConfig::TELEGRAM_BOT_TOKEN_PLACEHOLDER;
+        $appTelegramConfig = $this->dataPersistor->get(SaveAppWebhookConfig::XPIFY_APP_CONFIG_TELEGRAM_PERISTOR_KEY);
+        if (empty($appTelegramConfig)) {
+            $appTelegramConfig = $this->scopeConfig->getValue(Config::getTelegramConfigPath($appId));
+            if (!empty($appTelegramConfig)) {
+                $appTelegramConfig = $this->json->unserialize($appTelegramConfig);
+            }
+        } else {
+            $this->dataPersistor->clear(SaveAppWebhookConfig::XPIFY_APP_CONFIG_TELEGRAM_PERISTOR_KEY);
+        }
+
+        if (!empty($appTelegramConfig['bot_token'])) {
+            $appTelegramConfig['bot_token'] = SaveAppWebhookConfig::TELEGRAM_BOT_TOKEN_PLACEHOLDER;
         }
         if (!empty($appWebhookConfig)) {
             $loadedData[$appId][AppDataProvider::OTHER_CONFIGURATION_FIELDSET_NAME][SaveAppWebhookConfig::WEBHOOK_FORM_SCOPE_KEY] = $appWebhookConfig;
+        }
+        if (!empty($appTelegramConfig)) {
+            $loadedData[$appId][AppDataProvider::OTHER_CONFIGURATION_FIELDSET_NAME][SaveAppWebhookConfig::WEBHOOK_TELEGRAM_FORM_SCOPE_KEY] = $appTelegramConfig;
         }
         return $loadedData;
     }

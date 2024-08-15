@@ -471,9 +471,7 @@ class Webhook
             ];
             /** @var IWebhookTopic $handler */
             $handler = $topic['topic'];
-            if (!empty($handler->getIncludeFields())) {
-                $params['includeFields'] = json_encode($handler->getIncludeFields());
-            }
+            $params['includeFields'] = json_encode($handler->getIncludeFields());
             if (!empty($handler->getMetafieldNamespaces())) {
                 $params['metafieldNamespaces'] = json_encode($handler->getMetafieldNamespaces());
             }

@@ -29,6 +29,10 @@ interface AppInterface
     const UPDATED_AT = 'updated_at';
     const TOKEN = 'token';
 
+    public function getId();
+
+    public function setId($value);
+
     public function getToken(): ?string;
 
     public function setToken(string $token): self;
