@@ -124,5 +124,10 @@
                 <label translate="true">Installation Time</label>
             </settings>
         </column>
+        <actionsColumn name="actions" class="Xpify\Merchant\Ui\Component\Listing\Column\MerchantActions" sortOrder="99999">
+            <settings>
+                <indexField>entity_id</indexField>
+            </settings>
+        </actionsColumn>
     </columns>
 </listing>
