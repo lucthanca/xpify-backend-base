@@ -5,6 +5,7 @@ namespace Xpify\Merchant\Controller\Adminhtml\Merchants;
 
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Registry;
 use Magento\Framework\View\Result\PageFactory;
@@ -15,23 +16,24 @@ class Form extends \Magento\Backend\App\Action implements HttpGetActionInterface
     private MerchantFactory $merchantFactory;
     private Registry $registry;
     private PageFactory $pageFactory;
+    private DataPersistorInterface $dataPersistor;
 
     /**
      * @param Context $context
      * @param MerchantFactory $merchantFactory
-     * @param Registry $registry
+     * @param DataPersistorInterface $dataPersistor
      * @param PageFactory $pageFactory
      */
     public function __construct(
         Context $context,
         \Xpify\Merchant\Model\MerchantFactory $merchantFactory,
-        \Magento\Framework\Registry $registry,
+        DataPersistorInterface $dataPersistor,
         \Magento\Framework\View\Result\PageFactory $pageFactory
     ) {
         parent::__construct($context);
         $this->merchantFactory = $merchantFactory;
-        $this->registry = $registry;
         $this->pageFactory = $pageFactory;
+        $this->dataPersistor = $dataPersistor;
     }
 
     public function execute()
@@ -48,7 +50,7 @@ class Form extends \Magento\Backend\App\Action implements HttpGetActionInterface
             throw new NoSuchEntityException(__('Merchant not found'));
         }
         $title = __("Edit: %1", $merchant->getName());
-        $this->registry->register('current_merchant', $merchant);
+        $this->dataPersistor->set('current_merchant', $merchant);
         $page = $this->pageFactory->create();
         $page->getConfig()->getTitle()->prepend($title);
         return $page;
