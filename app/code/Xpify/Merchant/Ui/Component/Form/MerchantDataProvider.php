@@ -26,9 +26,9 @@ class MerchantDataProvider extends ModifierPoolDataProvider
      * @param FMerchantCollection $collectionFactory
      * @param DataPersistorInterface $dataPersistor
      * @param RequestInterface $request
-     * @param $name
-     * @param $primaryFieldName
-     * @param $requestFieldName
+     * @param string $name
+     * @param string $primaryFieldName
+     * @param string $requestFieldName
      * @param array $meta
      * @param array $data
      * @param PoolInterface|null $pool
