@@ -5,6 +5,7 @@
         <sequence>
             <module name="Xpify_Auth"/>
             <module name="Xpify_Merchant"/>
+            <module name="Xpify_AppGraphQl"/>
         </sequence>
     </module>
 </config>
