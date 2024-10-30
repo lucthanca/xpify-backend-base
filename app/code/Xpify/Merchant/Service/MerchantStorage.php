@@ -93,9 +93,7 @@ class MerchantStorage implements SessionStorage
         if ($merchant->getAccessToken()) {
             $session->setAccessToken($merchant->getAccessToken());
         }
-        if ($merchant->getScope()) {
-            $session->setScope($merchant->getScope());
-        }
+        $session->setScope($merchant->getScope());
         if ($merchant->getUserId()) {
             $onlineAccessInfo = new AccessTokenOnlineUserInfo(
                 $merchant->getUserId(),
