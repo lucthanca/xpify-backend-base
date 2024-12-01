@@ -272,7 +272,7 @@ class Billing
      * @return void
      * @throws ShopifyBillingException
      */
-    private static function getOneTimePurchases(IMerchant $merchant, callable $handler): void
+    public static function getOneTimePurchases(IMerchant $merchant, callable $handler): void
     {
         $endCursor = null;
         do {
