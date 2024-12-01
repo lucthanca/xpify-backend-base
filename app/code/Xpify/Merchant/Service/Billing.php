@@ -244,6 +244,54 @@ class Billing
     }
 
     /**
+     * @param IMerchant $merchant
+     * @param string|null $chargeName
+     * @return array
+     * @throws NoSuchEntityException
+     * @throws ShopifyBillingException
+     */
+    public static function getActiveOneTimePurchases(IMerchant $merchant, string $chargeName = null): array
+    {
+        $items = [];
+        self::getOneTimePurchases($merchant, function (array $node) use (&$items, $chargeName) {
+            if (
+                ($chargeName === null || $node["name"] === $chargeName) &&
+                (!self::getCurrentApp()->isProd() || !$node["test"]) &&
+                $node["status"] === "ACTIVE"
+            ) {
+                $items[] = $node;
+            }
+            return false;
+        });
+        return $items;
+    }
+
+    /**
+     * @param IMerchant $merchant
+     * @param callable $handler - A function that accepts a node array and returns a boolean to whether to stop the loop
+     * @return void
+     * @throws ShopifyBillingException
+     */
+    private static function getOneTimePurchases(IMerchant $merchant, callable $handler): void
+    {
+        $endCursor = null;
+        do {
+            $responseBody = self::queryOrException($merchant, [
+                "query" => self::ONE_TIME_PURCHASES_QUERY,
+                "variables" => ["endCursor" => $endCursor]
+            ]);
+            $purchases = $responseBody["data"]["currentAppInstallation"]["oneTimePurchases"];
+            foreach ($purchases["edges"] as $purchase) {
+                $shouldStop = $handler($purchase["node"]);
+                if ($shouldStop) {
+                    return;
+                }
+            }
+            $endCursor = $purchases["pageInfo"]["endCursor"];
+        } while ($purchases["pageInfo"]["hasNextPage"]);
+    }
+
+    /**
      * Check merchant has one time payment
      *
      * @param IMerchant $merchant
@@ -253,33 +301,19 @@ class Billing
      */
     private static function hasOneTimePayment(IMerchant $merchant, array $config): bool
     {
-        $purchases = null;
-        $endCursor = null;
-        do {
-            $responseBody = self::queryOrException(
-                $merchant,
-                [
-                    "query" => self::ONE_TIME_PURCHASES_QUERY,
-                    "variables" => ["endCursor" => $endCursor]
-                ]
-            );
-            $purchases = $responseBody["data"]["currentAppInstallation"]["oneTimePurchases"];
-
-            foreach ($purchases["edges"] as $purchase) {
-                $node = $purchase["node"];
-                if (
-                    $node["name"] === $config["chargeName"] &&
-                    (!self::getCurrentApp()->isProd() || !$node["test"]) &&
-                    $node["status"] === "ACTIVE"
-                ) {
-                    return true;
-                }
+        $hasOneTimePayment = false;
+        self::getOneTimePurchases($merchant, function (array $node) use ($config, &$hasOneTimePayment) {
+            if (
+                $node["name"] === $config["chargeName"] &&
+                (!self::getCurrentApp()->isProd() || !$node["test"]) &&
+                $node["status"] === "ACTIVE"
+            ) {
+                $hasOneTimePayment = true;
+                return true;
             }
-
-            $endCursor = $purchases["pageInfo"]["endCursor"];
-        } while ($purchases["pageInfo"]["hasNextPage"]);
-
-        return false;
+            return false;
+        });
+        return $hasOneTimePayment;
     }
 
     /**
@@ -421,7 +455,7 @@ class Billing
             oneTimePurchases(first: 250, sortKey: CREATED_AT, after: $endCursor) {
                 edges {
                     node {
-                        name, test, status
+                        id, name, test, status
                     }
                 }
                 pageInfo {
