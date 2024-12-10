@@ -157,6 +157,11 @@ final class Utils
         return $value;
     }
 
+    public static function setConfig(string $path, string $value, string $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, int $scopeCode = null): void
+    {
+        self::setValue($path, $value, $scope, $scopeCode);
+    }
+
     /**
      * Set value to core_config_data
      *
