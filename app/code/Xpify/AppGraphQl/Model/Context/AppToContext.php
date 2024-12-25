@@ -78,7 +78,7 @@ class AppToContext implements ContextParametersProcessorInterface
                     $logger->addWriter($writer);
                     $logger->debug($e->getMessage() . ' ||| ' . $e->getTraceAsString());
 
-                    throw new LocalizedException(__('Failed to initialize Shopify context'));
+                    throw new LocalizedException(__('Failed to initialize Shopify context. %1', $e->getMessage()));
                 }
             };
             if ($decodedAppId !== null) {
