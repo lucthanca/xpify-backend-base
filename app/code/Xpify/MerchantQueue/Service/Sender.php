@@ -77,7 +77,8 @@ class Sender
 
 //        $streamVerboseHandle = fopen('php://temp', 'w+');
 //        $curl->addOption(CURLOPT_STDERR, $streamVerboseHandle);
-        $curl->write('POST', $endpoint, '1.1', $headers, json_encode($data));
+        $encodedData = json_encode($data);
+        $curl->write('POST', $endpoint, '1.1', $headers, $encodedData);
         $responseBody = $curl->read();
 //        rewind($streamVerboseHandle);
 //        $verboseLog = stream_get_contents($streamVerboseHandle);
@@ -93,10 +94,11 @@ class Sender
         if ($httpCode != 200) {
             Logger::getLogger('webhook_sender_failure.log')->debug(sprintf('Failed to send webhook request. HTTP code: %s, body: %s', $httpCode, $responseBody));
             \Xpify\MerchantQueue\Telegram::notify(sprintf(
-                "<b>[%s]</b>" . chr(10) . "Failed to send webhook request." . chr(10).chr(10) . "<b>HTTP code:</b> %s" . chr(10) . "<b>Body:</b> %s",
+                "<b>[%s]</b>" . chr(10) . "Failed to send webhook request." . chr(10).chr(10) . "<b>HTTP code:</b> %s" . chr(10) . "<b>Body:</b> %s" . chr(10) . "<b>Payload:</b> %s",
                 gmdate('c'),
                 $httpCode,
-                htmlspecialchars($response->getBody())
+                htmlspecialchars($response->getBody()),
+                $encodedData,
             ), $telegramConfig);
             throw new LocalizedException(__("Webhook request failed with HTTP code: %1, check log file: var/log/webhook_sender_failure.log", $httpCode), null, 1400);
         }
