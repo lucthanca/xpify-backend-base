@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <fieldset name="other_configuration">
+        <fieldset name="telegram_notification" sortOrder="0">
+            <settings>
+                <label translate="true">Telegram Notification</label>
+                <dataScope>telegram</dataScope>
+                <collapsible>true</collapsible>
+                <opened>true</opened>
+            </settings>
+            <field name="enable" sortOrder="150" formElement="checkbox">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="source" xsi:type="string">block</item>
+                        <item name="default" xsi:type="number">0</item>
+                    </item>
+                </argument>
+                <settings>
+                    <dataType>boolean</dataType>
+                    <label translate="true">Enable</label>
+                    <dataScope>enable</dataScope>
+                    <notice translate="true">Using Telegram BOT to send a message to a configured chat group!</notice>
+                </settings>
+                <formElements>
+                    <checkbox>
+                        <settings>
+                            <valueMap>
+                                <map name="false" xsi:type="number">0</map>
+                                <map name="true" xsi:type="number">1</map>
+                            </valueMap>
+                            <prefer>toggle</prefer>
+                        </settings>
+                    </checkbox>
+                </formElements>
+            </field>
+            <field name="bot_token" formElement="input" sortOrder="200">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="elementTmpl" xsi:type="string">Xpify_MerchantQueue/form/element/password</item>
+                    </item>
+                </argument>
+                <settings>
+                    <dataType>text</dataType>
+                    <dataScope>bot_token</dataScope>
+                    <label translate="true">Bot Token</label>
+                    <tooltip>
+                        <description translate="true">Click here to know how to get the token from BotFather</description>
+                        <link>https://core.telegram.org/bots#how-do-i-create-a-bot</link>
+                    </tooltip>
+                </settings>
+            </field>
+            <field name="chat_id" formElement="input" sortOrder="300">
+                <settings>
+                    <dataType>text</dataType>
+                    <dataScope>chat_id</dataScope>
+                    <label translate="true">Chat ID</label>
+                    <notice translate="true">Search Google :)</notice>
+                </settings>
+            </field>
+            <field name="log_on_success" sortOrder="500" formElement="checkbox">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="source" xsi:type="string">block</item>
+                        <item name="default" xsi:type="number">0</item>
+                    </item>
+                </argument>
+                <settings>
+                    <dataType>boolean</dataType>
+                    <label translate="true">Log on success</label>
+                    <dataScope>log_on_success</dataScope>
+                    <notice translate="true">Send message even the webhook runs smoothly!</notice>
+                </settings>
+                <formElements>
+                    <checkbox>
+                        <settings>
+                            <valueMap>
+                                <map name="false" xsi:type="number">0</map>
+                                <map name="true" xsi:type="number">1</map>
+                            </valueMap>
+                            <prefer>toggle</prefer>
+                        </settings>
+                    </checkbox>
+                </formElements>
+            </field>
+        </fieldset>
+        <fieldset name="webhook">
+            <settings>
+                <label translate="true">Data Webhook</label>
+                <dataScope>webhook</dataScope>
+                <collapsible>true</collapsible>
+                <opened>true</opened>
+            </settings>
+            <field name="enable" sortOrder="5" formElement="checkbox">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="source" xsi:type="string">block</item>
+                        <item name="default" xsi:type="number">0</item>
+                    </item>
+                </argument>
+                <settings>
+                    <dataType>boolean</dataType>
+                    <label translate="true">Enable</label>
+                    <dataScope>enable</dataScope>
+                </settings>
+                <formElements>
+                    <checkbox>
+                        <settings>
+                            <valueMap>
+                                <map name="false" xsi:type="number">0</map>
+                                <map name="true" xsi:type="number">1</map>
+                            </valueMap>
+                            <prefer>toggle</prefer>
+                        </settings>
+                    </checkbox>
+                </formElements>
+            </field>
+            <field name="endpoint" sortOrder="10" formElement="input">
+                <settings>
+                    <dataType>text</dataType>
+                    <validation>
+                        <rule name="validate-url" xsi:type="boolean">true</rule>
+                    </validation>
+                    <dataScope>endpoint</dataScope>
+                    <label translate="true">Endpoint</label>
+                </settings>
+            </field>
+            <field name="username" formElement="input" sortOrder="20">
+                <settings>
+                    <dataType>text</dataType>
+                    <dataScope>username</dataScope>
+                    <label translate="true">Username</label>
+                </settings>
+            </field>
+            <field name="password" formElement="input" sortOrder="30">
+                <settings>
+                    <dataType>text</dataType>
+                    <dataScope>password</dataScope>
+                    <label translate="true">Password</label>
+                </settings>
+            </field>
+        </fieldset>
+    </fieldset>
+</form>

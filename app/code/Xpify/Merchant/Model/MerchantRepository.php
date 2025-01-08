@@ -6,11 +6,17 @@ namespace Xpify\Merchant\Model;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\InputException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Psr\Log\LoggerInterface;
+use Xpify\App\Api\Data\AppInterface as IApp;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\Merchant\Api\Data\MerchantSearchResultsInterface as SearchResults;
 use Xpify\Merchant\Api\Data\MerchantSearchResultsInterfaceFactory as SearchResultsFactory;
+use Xpify\Merchant\Model\ResourceModel\Merchant;
 use Xpify\Merchant\Model\ResourceModel\Merchant\CollectionFactory as MerchantCollectionFactory;
+use Magento\Framework\App\RequestInterface as IRequest;
+use Xpify\App\Api\AppRepositoryInterface as IAppRepository;
 
 class MerchantRepository implements \Xpify\Merchant\Api\MerchantRepositoryInterface
 {
@@ -20,13 +26,17 @@ class MerchantRepository implements \Xpify\Merchant\Api\MerchantRepositoryInterf
     protected \Psr\Log\LoggerInterface $logger;
     private MerchantCollectionFactory $collectionFactory;
     private ?CollectionProcessorInterface $collectionProcessor;
+    private IRequest $request;
+    private IAppRepository $appRepository;
 
     /**
-     * @param ResourceModel\Merchant $resource
+     * @param Merchant $resource
      * @param MerchantFactory $factory
-     * @param \Psr\Log\LoggerInterface $logger
+     * @param LoggerInterface $logger
      * @param MerchantCollectionFactory $collectionFactory
      * @param SearchResultsFactory $searchResultsFactory
+     * @param IRequest $request
+     * @param IAppRespository $appRepository
      * @param CollectionProcessorInterface|null $collectionProcessor
      */
     public function __construct(
@@ -35,6 +45,8 @@ class MerchantRepository implements \Xpify\Merchant\Api\MerchantRepositoryInterf
         \Psr\Log\LoggerInterface $logger,
         MerchantCollectionFactory $collectionFactory,
         SearchResultsFactory $searchResultsFactory,
+        IRequest $request,
+        IAppRepository $appRepository,
         CollectionProcessorInterface $collectionProcessor = null
     ) {
         $this->resource = $resource;
@@ -43,6 +55,8 @@ class MerchantRepository implements \Xpify\Merchant\Api\MerchantRepositoryInterf
         $this->collectionFactory = $collectionFactory;
         $this->collectionProcessor = $collectionProcessor;
         $this->searchResultsFactory = $searchResultsFactory;
+        $this->request = $request;
+        $this->appRepository = $appRepository;
     }
 
     /**
@@ -143,5 +157,42 @@ class MerchantRepository implements \Xpify\Merchant\Api\MerchantRepositoryInterf
     public function cleanNotCompleted(string $shop): int|string
     {
         return $this->resource->cleanNotCompleted($shop);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getListShopInfo(): array
+    {
+        $xpifyAuthAppHeader = $this->request->getHeader('X-Xpify-App-Token');
+        if (!$xpifyAuthAppHeader) {
+            throw new InputException(__("À há!"), null, 403);
+        }
+        try {
+            $authApp = $this->appRepository->get($xpifyAuthAppHeader, IApp::TOKEN);
+        } catch (\Throwable $e) {
+            throw new NoSuchEntityException(__("Restricted access"));
+        }
+        if (!$authApp || empty($authApp->getId())) {
+            throw new NoSuchEntityException(__("Restricted access"));
+        }
+
+        $searchCriteria = \Magento\Framework\App\ObjectManager::getInstance()
+            ->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
+        $searchCriteria->addFilter(IMerchant::APP_ID, $authApp->getId());
+        $searchResults = $this->getList($searchCriteria->create());
+        $items = $searchResults->getItems();
+        $results = [];
+        array_walk($items, function (IMerchant $merchant) use (&$results) {
+            $results[] = \Magento\Framework\App\ObjectManager::getInstance()
+                ->create(\Xpify\Merchant\Api\Data\SimpleShopInfoInterface::class, [
+                    'data' => [
+                        \Xpify\Merchant\Api\Data\SimpleShopInfoInterface::MYSHOPIFY_DOMAIN => $merchant->getShop(),
+                        \Xpify\Merchant\Api\Data\SimpleShopInfoInterface::EMAIL => $merchant->getEmail(),
+                        \Xpify\Merchant\Api\Data\SimpleShopInfoInterface::NAME => $merchant->getName(),
+                    ]
+                ]);
+        });
+        return $results;
     }
 }

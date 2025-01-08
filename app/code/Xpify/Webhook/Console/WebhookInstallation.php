@@ -19,6 +19,8 @@ class WebhookInstallation extends BaseCommand
 {
     const OPT_SHOP = 'shop';
     const OPT_APP_ID = 'app_id';
+    const OPT_ALL_STORE = 'all-store';
+    const DEFAULT_PROGRESS_CHAR = '>';
 
     private \Xpify\Merchant\Api\MerchantRepositoryInterface $merchantRepository;
     private \Xpify\App\Api\AppRepositoryInterface $appRepository;
@@ -72,24 +74,64 @@ class WebhookInstallation extends BaseCommand
     {
         try {
             $merchants = $this->getValidMerchant($input, $output);
-            $output->writeln("Kiểm tra");
+            if (empty($merchants)) {
+                $output->writeln("<error>Không có shop nào hợp lệ để chạy lệnh!</error>");
+                return false;
+            }
             $frontendConfigs = $this->configLoader->load(\Magento\Framework\App\Area::AREA_FRONTEND);
+            $progressBar = $this->getProgress(
+                $output,
+                sprintf("Đang xử lý: <comment>%%entity_id%%</comment>" .
+                    "%s%%current%%/%%max%% [%%bar%%] %%percent:3s%%%% - Estimated %%estimated:-6s%%", chr(10)),
+            );
+            $progressBar->start(count($merchants));
+            $completedResults = [];
+            $jobStart = microtime(true);
             foreach ($merchants as $merchant) {
+                $start = microtime(true);
+                $progressBar->setMessage(
+                    sprintf("[%s] %s", $merchant->getId(), $merchant->getShop()),
+                    "entity_id"
+                );
                 try {
-                    $this->appState->emulateAreaCode(\Magento\Framework\App\Area::AREA_FRONTEND, function (IMerchant $merchant, OutputInterface $output) use ($frontendConfigs) {
+                    $this->appState->emulateAreaCode(\Magento\Framework\App\Area::AREA_FRONTEND, function (IMerchant $merchant, OutputInterface $output) use ($frontendConfigs, $start, &$completedResults) {
                         \Magento\Framework\App\ObjectManager::getInstance()->configure($frontendConfigs);
                         $webhookRegister = \Magento\Framework\App\ObjectManager::getInstance()->get(\Xpify\Webhook\Service\Webhook::class);
                         $selectedApp = $this->getCurrentApp->get();
-                        $output->writeln(sprintf("Kiểm tra shop %s", $merchant->getShop()));
+                        # $output->writeln(sprintf("Kiểm tra shop %s", $merchant->getShop()));
                         $this->contextInitializer->initialize($selectedApp);
-                        $webhookRegister->register($merchant->getSessionId());
-                        $output->writeln(sprintf("Đã cài đặt webhook cho shop %s", $merchant->getShop()));
+                        [$updateOrCreated, $deleted] = $webhookRegister->register($merchant->getSessionId());
+                        // mark updated when the result is not empty and index 0 and 1 is not empty
+                        $hasUpdated = !empty($updateOrCreated) || !empty($deleted);
+                        # $output->writeln(sprintf("Đã cài đặt webhook cho shop %s", $merchant->getShop()));
+                        $completedResults[] = [
+                            'shop' => $merchant->getShop(),
+                            'time' => microtime(true) - $start,
+                            'updated' => $hasUpdated
+                        ];
                     }, [$merchant, $output]);
                 } catch (\Throwable $e) {
-                    $output->writeln(sprintf("<error>ERROR: %s</error>", $e->getMessage()));
+                    $completedResults[] = [
+                        'shop' => $merchant->getShop(),
+                        'time' => microtime(true) - $start,
+                        'error' => true,
+                        'message' => $e->getMessage(),
+                    ];
+                    # $output->writeln(sprintf("<error>ERROR: %s</error>", $e->getMessage()));
                 }
-            }
 
+                $progressBar->advance();
+            }
+            $progressBar->finish();
+            $progressBar->clear();
+
+            $output->writeln("\n");
+            if (empty($completedResults)) {
+                $output->writeln("<error>Không có kết quả nào được trả về!</error>");
+                return false;
+            }
+            $output->writeln(sprintf("<info>Kết quả (%s trong %s giây)</info>", count($completedResults), round(microtime(true) - $jobStart, 4)));
+            $this->renderResultTable($output, $completedResults);
             return true;
         } catch (InvalidOptionException $e) {
             $output->writeln("");
@@ -108,6 +150,32 @@ class WebhookInstallation extends BaseCommand
     }
 
     /**
+     * Render result table
+     *
+     * @param OutputInterface $output
+     * @param array $results
+     * @return void
+     */
+    private function renderResultTable(OutputInterface $output, array $results): void
+    {
+        if (empty($results)) {
+            return;
+        }
+        $table = new \Symfony\Component\Console\Helper\Table($output);
+        $table->setHeaders(['Shop', 'Thời gian (giây)', 'Trạng thái', 'thông tin']);
+        $table->setRows(array_map(function ($result) {
+            $status = ($result['updated'] ?? false) ? '<info>cập nhật</info>' : '<comment>Không cập nhật</comment>';
+            if ($result['error'] ?? false) {
+                $status = '<error>Lỗi</error>';
+            }
+            return [$result['shop'], round($result['time'], 4), $status, $result['message'] ?? ''];
+        }, $results));
+        $table->setStyle('box-double');
+
+        $table->render();
+    }
+
+    /**
      * Validate option values
      *
      * @param InputInterface $input
@@ -119,7 +187,8 @@ class WebhookInstallation extends BaseCommand
     {
         $io = new SymfonyStyle($input, $output);
         $inputShops = $input->getOption(self::OPT_SHOP);
-        if (empty($inputShops)) {
+        $runAllStore = $input->getOption(self::OPT_ALL_STORE);
+        if (empty($inputShops) && $runAllStore === false) {
             $inputShops = [$io->ask('Nhập shop domain. chỉ cần nhập shop name, không cần nhập cả .myshopify.com', null, function (?string $shopName): string {
                 if (empty($shopName)) {
                     throw new InvalidOptionException('Cần nhập thông tin shop mới thực thi lệnh được.');
@@ -144,10 +213,18 @@ class WebhookInstallation extends BaseCommand
         }
         $selectedApp = $this->appRepository->get($appId);
         $this->getCurrentApp->set($selectedApp)->lock();
-        return array_filter(array_map(function ($shopDomain) use ($appId, $output) {
-            $searchCriteria = $this->getSearchCriteriaBuilder();
+        $searchCriteria = $this->getSearchCriteriaBuilder();
+        $searchCriteria->addFilter(IMerchant::APP_ID, $appId);
+        if ($runAllStore) {
+            $mSearchResults = $this->merchantRepository->getList($searchCriteria->create());
+            if ($mSearchResults->getTotalCount() === 0) {
+                $output->writeln(sprintf("<error>Không tìm thấy Merchant nào cho app %s!</error>", $app->getName()));
+                return [];
+            }
+            return $mSearchResults->getItems();
+        }
+        return array_filter(array_map(function ($shopDomain) use ($appId, $output, $searchCriteria) {
             $searchCriteria->addFilter(IMerchant::SHOP, $shopDomain . '.myshopify.com');
-            $searchCriteria->addFilter(IMerchant::APP_ID, $appId);
             $searchCriteria->setPageSize(1);
             $mSearchResults = $this->merchantRepository->getList($searchCriteria->create());
             if ($mSearchResults->getTotalCount() === 0) {
@@ -184,6 +261,12 @@ class WebhookInstallation extends BaseCommand
                 "a",
                 InputOption::VALUE_OPTIONAL,
                 "App ID mà cần kiểm tra",
+            ),
+            new InputOption(
+                self::OPT_ALL_STORE,
+                'all',
+                InputOption::VALUE_NONE,
+                'Chạy cho tất cả store'
             )
         ];
     }

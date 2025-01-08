@@ -7,5 +7,23 @@
              sortOrder="20"
              resource="Xpify_Core::xpify_management"
         />
+        <remove id="Magento_Integration::system_extensions"/>
+        <remove id="Magento_Integration::system_integrations"/>
+        <remove id="Magento_AsynchronousOperations::system_magento_logging"/>
+        <remove id="Magento_AsynchronousOperations::system_magento_logging_bulk_operations"/>
+        <remove id="Magento_Backend::system_convert"/>
+        <remove id="Magento_Reports::report"/>
+        <remove id="Magento_Sales::sales"/>
+<!--        <remove id="Magento_Backend::marketing"/>-->
+        <remove id="Magento_Customer::customer"/>
+        <remove id="Magento_Backend::content"/>
+        <remove id="Magento_Catalog::inventory"/>
+        <remove id="Magento_Catalog::catalog"/>
+        <remove id="Magento_Backend::stores_attributes"/>
+        <remove id="Magento_Backend::system_currency"/>
+        <remove id="Magento_Tax::sales_tax"/>
+        <remove id="Magento_CurrencySymbol::system_currency"/>
+        <remove id="Magento_Backend::system_store"/>
+        <remove id="Magento_Sales::system_order_statuses"/>
     </menu>
 </config>

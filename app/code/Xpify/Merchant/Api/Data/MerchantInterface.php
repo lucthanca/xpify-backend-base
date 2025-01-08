@@ -27,8 +27,36 @@ interface MerchantInterface
     const ACCOUNT_OWNER = 'account_owner';
     const LOCALE = 'locale';
     const COLLABORATOR = 'collaborator';
+    const EMAIL = 'email';
+    const NAME = 'name';
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
+
+    /**
+     * Get shop email
+     *
+     * @return string|null
+     */
+    public function getEmail(): ?string;
+
+    /**
+     * @param string|null $email
+     * @return self
+     */
+    public function setEmail(?string $email): self;
+
+    /**
+     * Get shop name
+     *
+     * @return string|null
+     */
+    public function getName(): ?string;
+
+    /**
+     * @param string|null $name
+     * @return self
+     */
+    public function setName(?string $name): self;
 
     /**
      * Get the user id

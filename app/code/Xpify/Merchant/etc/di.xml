@@ -7,6 +7,7 @@
     <preference for="Xpify\Merchant\Api\MerchantRepositoryInterface" type="Xpify\Merchant\Model\MerchantRepository"/>
     <preference for="Xpify\Merchant\Api\MerchantSubscriptionRepositoryInterface" type="Xpify\Merchant\Model\SubscriptionRepository"/>
     <preference for="Xpify\Merchant\Model\Billing\SubscriptionSuccessResolverInterface" type="Xpify\Merchant\Model\Billing\SuccessResponseResolver"/>
+    <preference for="Xpify\Merchant\Api\Data\SimpleShopInfoInterface" type="Xpify\Merchant\Model\SimpleShopInfo"/>
 
     <virtualType name="Xpify\Merchant\Model\Api\SearchCriteria\CollectionProcessor" type="Magento\Framework\Api\SearchCriteria\CollectionProcessor">
         <arguments>

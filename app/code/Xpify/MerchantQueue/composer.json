@@ -1,0 +1,23 @@
+{
+  "name": "xpify/module-merchant-queue",
+  "version": "1.0.0",
+  "description": "N/A",
+  "type": "magento2-module",
+  "require": {
+    "magento/framework": "*",
+    "magento/module-message-queue": "100.4.*",
+    "magento/module-mysql-mq": "100.4.*",
+    "xpify/module-merchant": "1.0.*"
+  },
+  "license": [
+    "Proprietary"
+  ],
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Xpify\\MerchantQueue\\": ""
+    }
+  }
+}

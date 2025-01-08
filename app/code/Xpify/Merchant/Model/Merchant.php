@@ -106,6 +106,38 @@ class Merchant extends AbstractModel implements IMerchant
     /**
      * @inheritDoc
      */
+    public function getEmail(): ?string
+    {
+        return $this->getData(IMerchant::EMAIL);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setEmail(?string $email): IMerchant
+    {
+        return $this->setData(IMerchant::EMAIL, $email);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getName(): ?string
+    {
+        return $this->getData(IMerchant::NAME);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setName(?string $name): IMerchant
+    {
+        return $this->setData(IMerchant::NAME, $name);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getUserId(): ?int
     {
         return (int) $this->getData(IMerchant::USER_ID);

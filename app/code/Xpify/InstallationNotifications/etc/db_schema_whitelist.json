@@ -1,0 +1,18 @@
+{
+    "$xpify_notification_queue": {
+        "column": {
+            "entity_id": true,
+            "session_id": true,
+            "shop": true,
+            "type": true,
+            "app_id": true,
+            "is_sent": true,
+            "created_at": true,
+            "start_at": true,
+            "finish_at": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    }
+}

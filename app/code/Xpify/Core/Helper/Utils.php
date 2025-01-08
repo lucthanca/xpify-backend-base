@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 namespace Xpify\Core\Helper;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\GraphQl\Query\Uid;
+use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Serialize\Serializer\Json;
 
 final class Utils
 {
@@ -105,5 +108,112 @@ final class Utils
             self::$uidEncoder = \Magento\Framework\App\ObjectManager::getInstance()->get(Uid::class);
         }
         return self::$uidEncoder;
+    }
+
+    /**
+     * Direct get config from core_config_data without being cached
+     *
+     * @param string $path
+     * @param string $scope
+     * @param int|null $scopeCode
+     * @param bool $parse - parse the value to array
+     * @return string|array|null
+     */
+    public static function getConfig(string $path, string $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, int $scopeCode = null, bool $parse = false)
+    {
+        $resourceConnection = \Magento\Framework\App\ObjectManager::getInstance()->get(ResourceConnection::class);
+        $connection = $resourceConnection->getConnection();
+        $tableName = $connection->getTableName('core_config_data');
+        if ($scope === 'store') {
+            $scope = 'stores';
+        } elseif ($scope === 'website') {
+            $scope = 'websites';
+        }
+        $select = $connection->select()->from(
+            ['core_config_data' => $tableName],
+            ['value']
+        )->where(
+            'path = ?',
+            $path
+        )->where(
+            'scope = ?',
+            $scope
+        )->where(
+            'scope_id = ?',
+            $scopeCode
+        );
+        $value = $connection->fetchOne($select);
+        if (empty($value)) {
+            return null;
+        }
+        if ($parse) {
+            $json = \Magento\Framework\App\ObjectManager::getInstance()->get(Json::class);
+            try {
+                return $json->unserialize($value);
+            } catch (\Throwable $e) {
+                return $value;
+            }
+        }
+        return $value;
+    }
+
+    public static function setConfig(string $path, string $value, string $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, int $scopeCode = null): void
+    {
+        self::setValue($path, $value, $scope, $scopeCode);
+    }
+
+    /**
+     * Set value to core_config_data
+     *
+     * @param string $path
+     * @param string $value
+     * @param string $scope
+     * @param int|null $scopeCode
+     * @return void
+     */
+    public static function setValue(string $path, string $value, string $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, int $scopeCode = null): void
+    {
+        $resourceConnection = \Magento\Framework\App\ObjectManager::getInstance()->get(ResourceConnection::class);
+        $connection = $resourceConnection->getConnection();
+        $tableName = $connection->getTableName('core_config_data');
+        if ($scope === 'store') {
+            $scope = 'stores';
+        } elseif ($scope === 'website') {
+            $scope = 'websites';
+        }
+        if ($scopeCode === null) {
+            $scopeCode = 0;
+        }
+        $select = $connection->select()->from(
+            ['core_config_data' => $tableName],
+            ['config_id']
+        )->where(
+            'path = ?',
+            $path
+        )->where(
+            'scope = ?',
+            $scope
+        )->where(
+            'scope_id = ?',
+            $scopeCode
+        );
+        $configId = $connection->fetchOne($select);
+        if ($configId) {
+            $connection->update(
+                $tableName,
+                ['value' => $value],
+                ['config_id = ?' => $configId]
+            );
+        } else {
+            $connection->insert(
+                $tableName,
+                [
+                    'path' => $path,
+                    'value' => $value,
+                    'scope' => $scope,
+                    'scope_id' => $scopeCode
+                ]
+            );
+        }
     }
 }

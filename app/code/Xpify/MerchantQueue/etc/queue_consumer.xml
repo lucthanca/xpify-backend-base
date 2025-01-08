@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/consumer.xsd">
+    <consumer name="xpify.merchant.info" queue="xpify.merchant.info" connection="db"
+              handler="Xpify\MerchantQueue\Model\Queue\Handler\MerchantInfoHandler::execute" maxMessages="1000" sleep="30"/>
+</config>

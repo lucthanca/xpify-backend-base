@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="app_installed_successfully">
+        <observer name="notify_installation" instance="Xpify\InstallationNotifications\Observer\InstallNotifyObserver"/>
+    </event>
+    <event name="app_uninstalled_success">
+        <observer name="notify_uninstall" instance="Xpify\InstallationNotifications\Observer\UninstallNotifyObserver"/>
+    </event>
+</config>

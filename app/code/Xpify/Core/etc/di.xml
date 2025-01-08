@@ -52,4 +52,10 @@
     <!-- /END DISABLE SEARCH ENGINE DECLARE  -->
     <preference for="Magento\Webapi\Model\Authorization\TokenUserContext" type="Xpify\Core\Model\Authorization\TokenUserContext"/>
     <preference for="Magento\Framework\GraphQl\Config" type="Xpify\Core\GraphQl\Config"/>
+    <type name="Magento\Cron\Model\ConfigInterface">
+        <plugin name="remove_unwanted_cron_jobs" type="Xpify\Core\Plugin\CronConfig" />
+    </type>
+    <type name="Magento\Framework\MessageQueue\Consumer\ConfigInterface">
+        <plugin name="remove_unwanted_queue_consumers" type="Xpify\Core\Plugin\QueueConsumerConfig" />
+    </type>
 </config>

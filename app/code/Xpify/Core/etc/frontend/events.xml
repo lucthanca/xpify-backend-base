@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="controller_action_predispatch">
+        <observer name="customer_visitor" disabled="true"/>
+    </event>
+    <event name="controller_action_postdispatch">
+        <observer name="customer_visitor" disabled="true"/>
+    </event>
+    <event name="customer_data_object_login">
+        <observer name="customer_visitor" disabled="true"/>
+    </event>
+    <event name="checkout_quote_destroy">
+        <observer name="customer_visitor" disabled="true"/>
+    </event>
+    <event name="customer_customer_authenticated">
+        <observer name="customer_password" disabled="true"/>
+        <observer name="customer_unlock" disabled="true"/>
+    </event>
+</config>

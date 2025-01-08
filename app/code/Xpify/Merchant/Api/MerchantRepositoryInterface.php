@@ -7,6 +7,7 @@ use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
+use Xpify\Merchant\Api\Data\SimpleShopInfoInterface as ISimpleShopInfo;
 
 interface MerchantRepositoryInterface
 {
@@ -60,4 +61,11 @@ interface MerchantRepositoryInterface
      * @throws CouldNotDeleteException
      */
     public function cleanNotCompleted(string $shop): int|string;
+
+    /**
+     * Get all shop info based on the auth app token
+     *
+     * @return ISimpleShopInfo[]
+     */
+    public function getListShopInfo(): array;
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Email:etc/email_templates.xsd">
+    <template id="install_notify_email" label="The notify email template for new installation" file="install_notify_email.html" type="html" module="Xpify_InstallationNotifications" area="frontend"/>
+    <template id="uninstall_notify_email" label="The notify email template for Uninstallation" file="uninstall_notify_email.html" type="html" module="Xpify_InstallationNotifications" area="frontend"/>
+</config>

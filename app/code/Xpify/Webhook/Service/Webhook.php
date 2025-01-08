@@ -96,11 +96,11 @@ class Webhook
      *
      * @see Xpify/Auth/etc/frontend/di.xml
      * @param string $merchantId
-     * @return void
+     * @return array - [updateOrCreate, existingHandlers]
      * @throws ShopifyException
      * @throws \Shopify\Exception\MissingArgumentException|\Exception
      */
-    public function register(string $merchantId): void
+    public function register(string $merchantId): array
     {
         $app = $this->appOrException();
         $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
@@ -150,6 +150,8 @@ class Webhook
         foreach ($existingHandlers as $handler) {
             $this->deleteWebhook($merchant, $handler);
         }
+
+        return [$updateOrCreate, $existingHandlers];
     }
 
     /**
@@ -170,7 +172,7 @@ class Webhook
             $query = $this->buildWebhookMutation($topic);
             $client = $merchant->getGraphql();
             $isSuccess = function ($body) {
-                return !empty($result['data'][$this->getMutationName(null, $topic['operation'])]['deletedWebhookSubscriptionId']);
+                return !empty($body['data'][$this->getMutationName(null, $topic['operation'])]['deletedWebhookSubscriptionId']);
             };
             $response = $client->query(data: $query);
             $statusCode = $response->getStatusCode();
@@ -205,7 +207,7 @@ class Webhook
         $app = $this->appOrException();
         $client = $merchant->getGraphql();
         $isSuccessQuery = function ($body, ?string $webhookId) {
-            return !empty($result['data'][$this->getMutationName($webhookId)]['webhookSubscription']);
+            return !empty($body['data'][$this->getMutationName($webhookId)]['webhookSubscription']['id']);
         };
         foreach ($handlers as $handler) {
             try {
@@ -214,18 +216,20 @@ class Webhook
                 $statusCode = $response->getStatusCode();
                 $body = $response->getDecodedBody();
                 if ($statusCode !== 200) {
+                    $stringifyBody = json_encode($body);
                     throw new WebhookRegistrationException(
                         <<<ERROR
                     Failed to register webhook with Shopify (status code $statusCode):
-                    $body
+                    $stringifyBody
                     ERROR
                     );
                 }
                 if (!$isSuccessQuery($body, $handler['id'] ?? null)) {
+                    $stringifyBody = json_encode($body);
                     throw new WebhookRegistrationException(
                         <<<ERROR
                     Failed to register webhook with Shopify:
-                    $body
+                    $stringifyBody
                     ERROR
                     );
                 }
@@ -253,9 +257,12 @@ class Webhook
     {
         $client = $merchant->getGraphql();
         try {
+            if (!$client) {
+                throw new ShopifyException(__("No Access Token for shop %1.", $merchant->getShop())->render());
+            }
             $response = $client->query(data: $this->buildGetHandlersQuery($endcursor));
             if ($response->getStatusCode() !== 200) {
-                throw new ShopifyException(__("Failed to get existing webhook handlers for shop %1", $merchant->getShop())->render());
+                throw new ShopifyException(__("Failed to get existing webhook handlers for shop %1, shopify response error: %2", $merchant->getShop(), json_encode($response->getDecodedBody()))->render());
             }
             $decodedBody = $response->getDecodedBody();
 
@@ -335,26 +342,18 @@ class Webhook
     public function process(): array
     {
         $topic = $this->request->getHeader(HttpHeaders::X_SHOPIFY_TOPIC, '');
-        $hmacSha256 = $this->request->getHeader(HttpHeaders::X_SHOPIFY_HMAC);
         try {
             // required load app before processing webhook
             $app = $this->appOrException();
-            $secretKey = $app->getSecretKey();
-            $verifyHmac = $this->verifyWebhook($this->request->getContent(), $secretKey, $hmacSha256);
-            if ($verifyHmac) {
-                $this->contextInitializer->initialize($app);
-                $response = Registry::process($this->request->getHeaders()->toArray(), $this->request->getContent());
-                if (!$response->isSuccess()) {
-                    $this->getLogger()?->debug(__("Failed to process '$topic' webhook: %1", $response->getErrorMessage())->render());
-                    $code = 500;
-                    $errmsg = __("Failed to process '$topic' webhook");
-                } else {
-                    $code = 200;
-                    $errmsg = __("Processed '$topic' webhook successfully");
-                }
+            $this->contextInitializer->initialize($app);
+            $response = Registry::process($this->request->getHeaders()->toArray(), $this->request->getContent());
+            if (!$response->isSuccess()) {
+                $this->getLogger()?->debug(__("Failed to process '$topic' webhook: %1", $response->getErrorMessage())->render());
+                $code = 500;
+                $errmsg = __("Failed to process '$topic' webhook");
             } else {
-                $code = 401;
-                $errmsg = __("Failed to process '$topic' webhook. HMAC not verify!");
+                $code = 200;
+                $errmsg = __("Processed '$topic' webhook successfully");
             }
         } catch (InvalidWebhookException $e) {
             $this->getLogger()?->debug(__("Got invalid webhook request for topic '$topic': %2", $e->getMessage())->render());
@@ -366,20 +365,6 @@ class Webhook
             $errmsg = __("Got an exception when handling '$topic' webhook");
         }
         return [$code, $errmsg];
-    }
-
-    /**
-     * The following verify a webhook request
-     *
-     * @param $data
-     * @param $secretKey
-     * @param $hmacSha256
-     * @return bool
-     */
-    protected function verifyWebhook($data, $secretKey, $hmacSha256) {
-
-        $calculated_hmac = base64_encode(hash_hmac('sha256', $data, $secretKey, true));
-        return $calculated_hmac === $hmacSha256;
     }
 
     /**
@@ -478,6 +463,7 @@ class Webhook
         $mutationName = $this->getMutationName($topic['id'] ?? null, $operationName);
         $identifier = isset($topic['id']) ? "id: \"{$topic['id']}\"" : "topic: {$topic['topic']->topicForStorage()}";
         $mutationParams = '';
+        $returns = 'deletedWebhookSubscriptionId';
         if ($operationName !== 'delete') {
             $method = new HttpDelivery();
             $params = [
@@ -485,9 +471,7 @@ class Webhook
             ];
             /** @var IWebhookTopic $handler */
             $handler = $topic['topic'];
-            if (!empty($handler->getIncludeFields())) {
-                $params['includeFields'] = json_encode($handler->getIncludeFields());
-            }
+            $params['includeFields'] = json_encode($handler->getIncludeFields());
             if (!empty($handler->getMetafieldNamespaces())) {
                 $params['metafieldNamespaces'] = json_encode($handler->getMetafieldNamespaces());
             }
@@ -495,6 +479,7 @@ class Webhook
                 return "$key: $value";
             }, array_keys($params), array_values($params)));
             $mutationParams = "webhookSubscription: {{$paramsString}}";
+            $returns = 'webhookSubscription {id}';
         }
         return <<<MUTATION
         mutation ShopifyApiCreateWebhookSubscription {
@@ -502,6 +487,7 @@ class Webhook
                 $identifier,
                 $mutationParams
             ) {
+                $returns
                 userErrors { field message }
             }
         }

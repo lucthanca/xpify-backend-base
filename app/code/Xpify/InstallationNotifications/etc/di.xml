@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Xpify\InstallationNotifications\Model\EmailRecipientResolver">
+        <arguments>
+            <argument name="recipientResolverPool" xsi:type="array">
+                <item name="install" xsi:type="object">Xpify\InstallationNotifications\Model\Resolver\InstallEmailRecipientResolver</item>
+                <item name="uninstall" xsi:type="object">Xpify\InstallationNotifications\Model\Resolver\UninstallEmailRecipientResolver</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

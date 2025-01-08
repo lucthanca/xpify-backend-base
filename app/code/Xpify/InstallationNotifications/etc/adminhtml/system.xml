@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="bss" translate="label" sortOrder="555" class="bss-logo">
+            <label><![CDATA[Bss Commerce]]></label>
+        </tab>
+
+        <section id="installation_notify" translate="label" showInStore="1" showInWebsite="1" showInDefault="1">
+            <label><![CDATA[Installation Notify]]></label>
+            <tab>bss</tab>
+            <class>separator-top</class>
+            <resource>Xpify_InstallationNotify::config</resource>
+            <group id="general" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label><![CDATA[General]]></label>
+                <field id="enable" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1"
+                       showInStore="0">
+                    <label><![CDATA[Enable]]></label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="sender_name" showInWebsite="1" showInStore="1" showInDefault="1" translate="label" canRestore="1" type="text" sortOrder="10">
+                    <label><![CDATA[Sender Name]]></label>
+                </field>
+                <field id="sender_email" showInWebsite="1" showInStore="1" showInDefault="1" translate="label" canRestore="1" type="text" sortOrder="10">
+                    <label><![CDATA[Sender Email]]></label>
+                </field>
+<!--                <field id="async_sending" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1"-->
+<!--                       showInStore="0">-->
+<!--                    <label><![CDATA[Asynchronous Sending]]></label>-->
+<!--                    <source_model>Magento\Config\Model\Config\Source\Enabledisable</source_model>-->
+<!--                    <comment><![CDATA[Cron required.]]></comment>-->
+<!--                </field>-->
+            </group>
+            <group id="install_email" translate="label" type="text" sortOrder="100" showInDefault="1" showInStore="1" showInWebsite="1">
+                <label><![CDATA[On Install Email]]></label>
+                <field id="receive_email" type="text" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label">
+                    <label><![CDATA[Receive Email]]></label>
+                    <comment><![CDATA[single email only.]]></comment>
+                </field>
+                <field id="cc_email" type="textarea" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label comment">
+                    <label><![CDATA[CC Emails]]></label>
+                    <comment><![CDATA[Separate by comma.]]></comment>
+                </field>
+            </group>
+            <group id="uninstall_email" translate="label" type="text" sortOrder="100" showInDefault="1" showInStore="1" showInWebsite="1">
+                <label><![CDATA[On Uninstall Email]]></label>
+                <field id="receive_email" type="text" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label">
+                    <label><![CDATA[Receive Email]]></label>
+                    <comment><![CDATA[single email only.]]></comment>
+                </field>
+                <field id="cc_email" type="textarea" sortOrder="10" showInDefault="1" showInStore="1" showInWebsite="1" translate="label comment">
+                    <label><![CDATA[CC Emails]]></label>
+                    <comment><![CDATA[Separate by comma.]]></comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

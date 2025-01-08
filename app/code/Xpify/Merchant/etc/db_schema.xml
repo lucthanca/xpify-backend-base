@@ -20,6 +20,8 @@
         <column xsi:type="tinyint" name="account_owner" nullable="true" comment="Account Owner" unsigned="true" />
         <column xsi:type="varchar" name="locale" nullable="true" length="255" />
         <column xsi:type="tinyint" name="collaborator" nullable="true" comment="Is Collaborator" unsigned="true" />
+        <column xsi:type="varchar" name="email" nullable="true" length="255" comment="Merchant Email"/>
+        <column xsi:type="varchar" name="name" nullable="true" length="255" comment="Shop name"/>
         <column xsi:type="int" name="app_id" unsigned="true" nullable="false" identity="false" comment="Installed App ID" />
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="true" default="CURRENT_TIMESTAMP" comment="First interaction Time"/>
         <column xsi:type="timestamp" name="updated_at" on_update="false" nullable="true" comment="Update Time"/>

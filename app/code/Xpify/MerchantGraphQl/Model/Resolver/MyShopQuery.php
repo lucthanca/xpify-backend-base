@@ -30,6 +30,8 @@ class MyShopQuery extends AuthSessionAbstractResolver implements ResolverInterfa
             "/admin/api/$apiVersion/shop.json"
         );
 
-        return $response->getDecodedBody()['shop'];
+        $uid = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\GraphQl\Query\Uid::class);
+        $shop = $response->getDecodedBody()['shop'] ?? null;
+        return is_array($shop) ? array_merge($shop, ['id' => $uid->encode((string) $shop['domain'])]) : null;
     }
 }
