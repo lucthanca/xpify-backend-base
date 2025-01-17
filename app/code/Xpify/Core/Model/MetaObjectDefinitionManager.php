@@ -5,6 +5,7 @@ namespace Xpify\Core\Model;
 
 use Magento\Framework\Exception\LocalizedException;
 use Shopify\Clients\Graphql;
+use Xpify\Core\Helper\Config as CoreConfig;
 use Xpify\Core\Model\MetaObjectDefinitionInterface as IMetaObject;
 use Xpify\Core\Model\MetaObjectDefinitionUpdateHandlerInterface as IMetaObjectUpdateHandler;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
@@ -13,8 +14,10 @@ class MetaObjectDefinitionManager
 {
     private string $area;
     private ?IMetaObjectUpdateHandler $updateFieldHandler;
+    private CoreConfig $config;
 
     public function __construct(
+        CoreConfig $config,
         string $area = null,
         IMetaObjectUpdateHandler $updateFieldHandler = null
     ) {
@@ -23,6 +26,7 @@ class MetaObjectDefinitionManager
         }
         $this->area = $area;
         $this->updateFieldHandler = $updateFieldHandler;
+        $this->config = $config;
     }
 
     /**
@@ -37,8 +41,11 @@ class MetaObjectDefinitionManager
         if (!$client) {
             throw new LocalizedException(__("Can not initialize GraphQl Client. Merchant maybe has uninstalled the app."));
         }
+        if (empty($metaObject->getFields())) {
+            throw new LocalizedException(__("MetaObject definition fields can not be empty."));
+        }
         $configKey = $this->getConfigKey($merchant, $metaObject->getType());
-        $metaObjectDefinitionId = \Xpify\Core\Helper\Utils::getConfig($configKey);
+        $metaObjectDefinitionId = $this->config->getConfig($configKey);
 
         try {
             if ($metaObjectDefinitionId) {
@@ -52,7 +59,8 @@ class MetaObjectDefinitionManager
             }
 
             if ($processedDefinitionId !== $metaObjectDefinitionId) {
-                \Xpify\Core\Helper\Utils::setConfig($configKey, $metaObjectDefinitionId);
+                $this->config->setConfig($configKey, $processedDefinitionId);
+                return $processedDefinitionId;
             }
             return $metaObjectDefinitionId;
         } catch (LocalizedException $e) {
@@ -188,6 +196,13 @@ class MetaObjectDefinitionManager
         if (!empty($responseBody["errors"])) {
             throw new LocalizedException(
                 __("[%1] Receive response error. %2", $type, json_encode($responseBody["errors"]))
+            );
+        }
+        if (!empty($responseBody["data"][$dataKey]['userErrors'])) {
+            $errors = $responseBody["data"][$dataKey]['userErrors'];
+            $message = implode(', ', array_map(fn ($e) => $e['message'], $errors));
+            throw new LocalizedException(
+                __("[%1] Receive user errors. %2", $type, $message)
             );
         }
 
