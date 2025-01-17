@@ -83,3 +83,4 @@ atlassian*
 !/app/code/Xpify/
 
 /pub/adminer.php
+/app/Helper

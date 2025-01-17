@@ -60,6 +60,17 @@ class MerchantToContext implements ContextParametersProcessorInterface
         } catch (GraphQlShopifyReauthorizeRequiredException $e) {
             throw $e;
         } catch (\Throwable $e) {
+            if ($e instanceof \Shopify\Exception\MissingArgumentException) {
+                if ($debugMerchant = $this->request->getHeader('x-debug-merchant')) {
+                    $merchant = \Magento\Framework\App\ObjectManager::getInstance()->create(\Xpify\Merchant\Api\Data\MerchantInterface::class);
+                    $merchant->load($debugMerchant);
+                    if ($merchant->getId()) {
+                        $contextParameters->addExtensionAttribute('merchant', $merchant);
+                    }
+                }
+            } else {
+                dd($e);
+            }
             // Do nothing, just ignore authenticate merchant
         }
 
