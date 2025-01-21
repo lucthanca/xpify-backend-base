@@ -30,7 +30,7 @@ final class Subscription
     public static function hasSubscription(IMerchant $merchant, IPricingPlan $plan, string $interval): array
     {
         $subscription = self::getSubscription($merchant);
-        if ($subscription->getPlanId() . "" === $plan->getId() . "" && $subscription->getInterval() === $interval) {
+        if ($subscription?->getPlanId() . "" === $plan->getId() . "" && $subscription->getInterval() === $interval) {
             return [true, $subscription];
         }
         return [false, null];
