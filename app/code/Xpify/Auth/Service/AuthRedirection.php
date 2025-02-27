@@ -68,6 +68,6 @@ class AuthRedirection
             'buildQueryWithJoin' => true,
         ], \Xpify\Core\Model\Constants::SYS_SECRET_KEY);
         $appHost = Context::$HOST_NAME;
-        return urlencode("https://$appHost/api/auth?shop=$shop&_i={$this->uidEncoder->encode((string) $appId)}&sign=$sign");
+        return "https://$appHost/api/auth?shop=$shop&_i={$this->uidEncoder->encode((string) $appId)}&sign=$sign";
     }
 }
