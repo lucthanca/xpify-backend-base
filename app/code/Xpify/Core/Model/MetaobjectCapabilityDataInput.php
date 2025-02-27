@@ -10,22 +10,39 @@ class MetaobjectCapabilityDataInput extends DataObject
     const PUBLISHABLE_STATUS_ACTIVE = 'ACTIVE';
     const PUBLISHABLE_STATUS_DRAFT = 'DRAFT';
 
-    public function setOnlineStore(?string $templateSuffix)
+    /**
+     * Set the Online Store capability input.
+     *
+     * @param string|null $templateSuffix
+     * @return self
+     */
+    public function setOnlineStore(?string $templateSuffix): self
     {
-        if (!$templateSuffix) return;
-        $this->setData('onlineStore', compact('templateSuffix'));
+        if (!$templateSuffix) {
+            return $this;
+        }
+        return $this->setData('onlineStore', compact('templateSuffix'));
     }
 
-    public function setPublishable(string $status)
+    /**
+     * Set the Publishable capability input.
+     *
+     * @param string $status
+     * @return self
+     */
+    public function setPublishable(string $status): self
     {
         if (!in_array($status, [self::PUBLISHABLE_STATUS_ACTIVE, self::PUBLISHABLE_STATUS_DRAFT])) {
             throw new \InvalidArgumentException('Invalid publishable status');
         }
-        $this->setData('publishable', compact('status'));
+        return $this->setData('publishable', compact('status'));
     }
-
-    // auto return an array when echo $metaobjectCapabilityDataInput
-    public function __toArray()
+    /**
+     * Convert the object to an array.
+     *
+     * @return array
+     */
+    public function __toArray(): array
     {
         return $this->getData();
     }

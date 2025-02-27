@@ -38,4 +38,24 @@ class MetaObjectDefinition extends DataObject implements IMetaObject
     {
         return $this->setData(self::FIELDS, $fields);
     }
+
+    public function getCapabilities(): array
+    {
+        return $this->getData(self::CAPABILITIES) ?? [];
+    }
+
+    public function setCapabilities(array $capabilities): IMetaObject
+    {
+        return $this->setData(self::CAPABILITIES, $capabilities);
+    }
+
+    public function getAccess(): array
+    {
+        return $this->getData(self::ACCESS) ?? [];
+    }
+
+    public function setAccess(array $access): IMetaObject
+    {
+        return $this->setData(self::ACCESS, $access);
+    }
 }

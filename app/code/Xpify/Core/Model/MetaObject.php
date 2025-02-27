@@ -48,6 +48,13 @@ class MetaObject extends DataObject implements IMetaObject
         return $this->getData(self::CAPABILITIES);
     }
 
+    /**
+     * Note:
+     * - Should remove type when using for upsert and update mutation
+     * - When update, should add redirectNewHandle to true or false
+     *
+     * @return array
+     */
     public function __toArray(): array
     {
         return [

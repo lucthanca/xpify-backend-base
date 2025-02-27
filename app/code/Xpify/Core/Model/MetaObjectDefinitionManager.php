@@ -76,7 +76,7 @@ class MetaObjectDefinitionManager
         if (!$definition) {
             return $this->createNewDefinition($client, $metaObject);
         }
-        $updateFields = $this->prepareUpdateFields($definition, $metaObject->getFields());
+        $updateFields = $this->prepareUpdateFields($definition, $metaObject);
         if (empty($updateFields)) {
             return $definitionId;
         }
@@ -84,13 +84,34 @@ class MetaObjectDefinitionManager
         return $this->executeDefinitionUpdate($client, $definitionId, $metaObject->getType(), $updateFields);
     }
 
-    protected function prepareUpdateFields(array $definition, array $requiredFields): array
+    protected function prepareUpdateFields(array $definition, IMetaObject $metaObjectDefinition): array
     {
         $updateFields = [];
 
+        $requiredFields = $metaObjectDefinition->getFields();
         // Kiểm tra quyền truy cập storefront
-        if ($definition['access']['storefront'] !== 'PUBLIC_READ') {
-            $updateFields['access'] = ['storefront' => 'PUBLIC_READ'];
+        if (!empty($metaObjectDefinition->getAccess())) {
+            $storeFrontAccess = $metaObjectDefinition->getAccess()['storefront'] ?? null;
+            if ($storeFrontAccess !== null && $storeFrontAccess !== $definition['access']['storefront']) {
+                $updateFields['access'] = ['storefront' => $storeFrontAccess];
+            }
+            $adminAccess = $metaObjectDefinition->getAccess()['admin'] ?? null;
+            if ($adminAccess !== null && $adminAccess !== $definition['access']['admin']) {
+                if (isset($updateFields['access'])) {
+                    $updateFields['access']['admin'] = $adminAccess;
+                } else {
+                    $updateFields['access'] = ['admin' => $adminAccess];
+                }
+            }
+        }
+
+        // Kiểm tra khả năng publishable
+        $capabilities = $metaObjectDefinition->getCapabilities();
+        if (!empty($capabilities)) {
+            $publishableEnabled = $capabilities['publishable']['enabled'] ?? null;
+            if ($publishableEnabled !== null && $publishableEnabled !== $definition['capabilities']['publishable']['enabled']) {
+                $updateFields['capabilities'] = ['publishable' => ['enabled' => $publishableEnabled]];
+            }
         }
 
         // Xử lý các trường bị thiếu
@@ -176,7 +197,8 @@ class MetaObjectDefinitionManager
             'definition' => [
                 'name' => $metaObject->getName(),
                 'type' => $metaObject->getType(),
-                'access' => ['storefront' => 'PUBLIC_READ'],
+                'access' => $metaObject->getAccess(),
+                'capabilities' => $metaObject->getCapabilities(),
                 'fieldDefinitions' => array_values($metaObject->getFields()),
             ],
         ];
@@ -223,8 +245,8 @@ class MetaObjectDefinitionManager
             );
         }
 
-        $definition = $responseBody["data"]["metaobjectDefinition"];
-        return ($definition && $definition['type'] === $type) ? $definition : null;
+        return $responseBody["data"]["metaobjectDefinition"] ?? null;
+//        return ($definition && $definition['type'] === $type) ? $definition : null;
     }
 
     /**
@@ -287,8 +309,9 @@ class MetaObjectDefinitionManager
     private const _METAOBJECT_DEFINITION_QUERY = <<<'QUERY'
     query GetMetaObjectDefinition($id: ID!) {
         metaobjectDefinition(id: $id) {
-            access { storefront }
+            access { storefront admin }
             type
+            capabilities { publishable { enabled } }
             fieldDefinitions {
                 key name type { name }
                 validations { name value }
