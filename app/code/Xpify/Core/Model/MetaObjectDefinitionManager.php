@@ -197,11 +197,15 @@ class MetaObjectDefinitionManager
             'definition' => [
                 'name' => $metaObject->getName(),
                 'type' => $metaObject->getType(),
-                'access' => $metaObject->getAccess(),
-                'capabilities' => $metaObject->getCapabilities(),
                 'fieldDefinitions' => array_values($metaObject->getFields()),
             ],
         ];
+        if (!empty($metaObject->getCapabilities())) {
+            $variables['definition']['capabilities'] = $metaObject->getCapabilities();
+        }
+        if (!empty($metaObject->getAccess())) {
+            $variables['definition']['access'] = $metaObject->getAccess();
+        }
         $definition = $this->executeDefinitionMutation($client, $query, $variables, $metaObject->getType(), $dataKey);
 
         return $definition['id'];

@@ -94,6 +94,12 @@ class MetaObjectDefinitionManagerTest extends \Xpify\Core\Test\TestAbstract
         $metaObjectDefinitionMock
             ->shouldReceive('getFields')
             ->andReturn($this->createDefinitionMockData());
+        $metaObjectDefinitionMock->shouldReceive('getCapabilities')
+            ->andReturn([]);
+        $metaObjectDefinitionMock->shouldReceive('getAccess')
+            ->andReturn([
+                'storefront' => 'PUBLIC_READ',
+            ]);
         $graphQlMock = m::mock(\Shopify\Clients\Graphql::class);
         $this->merchant->expects($this->once())
             ->method('getGraphql')
@@ -136,6 +142,12 @@ class MetaObjectDefinitionManagerTest extends \Xpify\Core\Test\TestAbstract
         $metaObjectDefinitionMock
             ->shouldReceive('getType')
             ->andReturn('test_type');
+        $metaObjectDefinitionMock->shouldReceive('getAccess')
+            ->andReturn([
+                'storefront' => 'PUBLIC_READ',
+            ]);
+        $metaObjectDefinitionMock->shouldReceive('getCapabilities')
+            ->andReturn([]);
         $metaObjectDefinitionMock->shouldReceive('getFields')
             ->andReturn($this->createDefinitionMockData());
 
@@ -175,6 +187,12 @@ class MetaObjectDefinitionManagerTest extends \Xpify\Core\Test\TestAbstract
         $metaObjectDefinitionMock
             ->shouldReceive('getType')
             ->andReturn('test_type');
+        $metaObjectDefinitionMock->shouldReceive('getAccess')
+            ->andReturn([
+                'storefront' => 'PUBLIC_READ',
+            ]);
+        $metaObjectDefinitionMock->shouldReceive('getCapabilities')
+            ->andReturn([]);
         $metaObjectDefinitionMock->shouldReceive('getFields')
             ->andReturn($this->createDefinitionMockData());
 
@@ -214,8 +232,63 @@ class MetaObjectDefinitionManagerTest extends \Xpify\Core\Test\TestAbstract
         $metaObjectDefinitionMock
             ->shouldReceive('getType')
             ->andReturn('test_type');
+        $metaObjectDefinitionMock->shouldReceive('getAccess')
+            ->andReturn([
+                'storefront' => 'PUBLIC_READ',
+            ]);
+        $metaObjectDefinitionMock->shouldReceive('getCapabilities')
+            ->andReturn([]);
         $metaObjectDefinitionMock->shouldReceive('getFields')
             ->andReturn($this->createDefinitionMockData(withValidations: true));
+
+        $result = $mgr->install($this->merchant, $metaObjectDefinitionMock);
+        $this->assertEquals('gid://shopify/MetaobjectDefinition/578408816', $result, 'Should return existing definition id');
+    }
+
+    public function testCài_đặt_khi_definition_đã_tồn_tại_và_cần_cập_nhật_khi_capabilities_thay_đổi()
+    {
+        $mgr = new \Xpify\Core\Model\MetaObjectDefinitionManager($this->coreConfigMock, 'test_area');
+        $metaObjectDefinitionMock = m::mock(\Xpify\Core\Model\MetaObjectDefinition::class);
+        $graphQlMock = m::mock(\Shopify\Clients\Graphql::class);
+        $this->merchant->expects($this->once())
+            ->method('getGraphql')
+            ->willReturn($graphQlMock);
+
+        $this->coreConfigMock->expects($this->once())
+            ->method('getConfig')
+            ->willReturn('gid://shopify/MetaobjectDefinition/578408816');
+
+        $graphQlMock->shouldReceive('query')
+            ->once()
+            ->with(m::on(function ($payload) {
+                return str_contains($payload['query'], 'query GetMetaObjectDefinition');
+            }))->andReturn(m::mock(HttpResponse::class, [
+                "getDecodedBody" => $this->createFetchDefinitionMockResponse(publishableEnabled: true),
+            ]));
+
+        $graphQlMock->shouldReceive('query')
+            ->once()
+            ->with(m::on(function ($payload) {
+                return str_contains($payload['query'], 'mutation UpdateMetaobjectDefinition($id: ID!');
+            }))->andReturn(m::mock(HttpResponse::class, [
+                "getDecodedBody" => $this->createUpdateDefinitionMockResponse(),
+            ]));
+
+        $metaObjectDefinitionMock
+            ->shouldReceive('getType')
+            ->andReturn('test_type');
+        $metaObjectDefinitionMock->shouldReceive('getAccess')
+            ->andReturn([
+                'storefront' => 'PUBLIC_READ',
+            ]);
+        $metaObjectDefinitionMock->shouldReceive('getCapabilities')
+            ->andReturn([
+                'publishable' => [
+                    'enabled' => false,
+                ]
+            ]);
+        $metaObjectDefinitionMock->shouldReceive('getFields')
+            ->andReturn($this->createDefinitionMockData());
 
         $result = $mgr->install($this->merchant, $metaObjectDefinitionMock);
         $this->assertEquals('gid://shopify/MetaobjectDefinition/578408816', $result, 'Should return existing definition id');
@@ -251,6 +324,12 @@ class MetaObjectDefinitionManagerTest extends \Xpify\Core\Test\TestAbstract
             ->andReturn('test_type');
         $metaObjectDefinitionMock->shouldReceive('getName')
             ->andReturn('OT: Test Definition 1');
+        $metaObjectDefinitionMock->shouldReceive('getAccess')
+            ->andReturn([
+                'storefront' => 'PUBLIC_READ',
+            ]);
+        $metaObjectDefinitionMock->shouldReceive('getCapabilities')
+            ->andReturn([]);
         $metaObjectDefinitionMock->shouldReceive('getFields')
             ->andReturn($this->createDefinitionMockData());
         $this->coreConfigMock->expects($this->once())
@@ -291,7 +370,7 @@ class MetaObjectDefinitionManagerTest extends \Xpify\Core\Test\TestAbstract
         ];
     }
 
-    private function createFetchDefinitionMockResponse(string $accessStorefront = "PUBLIC_READ", bool $isEmpty = false): array
+    private function createFetchDefinitionMockResponse(string $accessStorefront = "PUBLIC_READ", bool $isEmpty = false, $publishableEnabled = false): array
     {
         if ($isEmpty) {
             return [
@@ -324,6 +403,11 @@ class MetaObjectDefinitionManagerTest extends \Xpify\Core\Test\TestAbstract
                             ],
                             "validations" => [],
                         ],
+                    ],
+                    "capabilities" => [
+                        "publishable" => [
+                            "enabled" => $publishableEnabled,
+                        ]
                     ],
                 ],
             ],
