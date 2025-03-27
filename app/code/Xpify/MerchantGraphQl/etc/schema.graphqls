@@ -25,6 +25,7 @@ type Shop @doc(description: "Follow guide Shopify") {
     shop_owner: String
     name: String
     domain: String
+    myshopify_domain: String
 }
 
 type SubscribePricingPlanOutput {
