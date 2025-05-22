@@ -32,6 +32,6 @@ class MyShopQuery extends AuthSessionAbstractResolver implements ResolverInterfa
 
         $uid = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\GraphQl\Query\Uid::class);
         $shop = $response->getDecodedBody()['shop'] ?? null;
-        return is_array($shop) ? array_merge($shop, ['id' => $uid->encode((string) $shop['domain'])]) : null;
+        return is_array($shop) ? array_merge($shop, ['id' => $uid->encode((string) $shop['myshopify_domain'])]) : null;
     }
 }
