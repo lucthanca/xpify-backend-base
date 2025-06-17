@@ -389,4 +389,14 @@ class Merchant extends AbstractModel implements IMerchant
         }
         return $this->storefront;
     }
+
+    public function getXAccessToken(): ?string
+    {
+        return $this->getData(IMerchant::X_ACCESS_TOKEN);
+    }
+
+    public function setXAccessToken(?string $xAccessToken): IMerchant
+    {
+        return $this->setData(IMerchant::X_ACCESS_TOKEN, $xAccessToken);
+    }
 }

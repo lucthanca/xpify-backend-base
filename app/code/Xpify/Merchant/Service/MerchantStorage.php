@@ -53,6 +53,11 @@ class MerchantStorage implements SessionStorage
         $merchant->setAccessToken($session->getAccessToken());
         $merchant->setExpiresAt($session->getExpires());
         $merchant->setScope($session->getScope());
+
+
+        $merchant->setXAccessToken(
+            \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Oauth\Helper\Oauth::class)->generateTokenSecret()
+        );
         if (!empty($session->getOnlineAccessInfo())) {
             $merchant->setUserId($session->getOnlineAccessInfo()->getId());
             $merchant->setUserFirstName($session->getOnlineAccessInfo()->getFirstName());
@@ -149,6 +154,12 @@ class MerchantStorage implements SessionStorage
         $merchant = current($searchResults->getItems());
         if (!$merchant->getId()) {
             throw new NoSuchEntityException(__('Merchant with session id "%1" does not exist.', $sessId));
+        }
+        if (!$merchant->getXAccessToken()) {
+            $merchant->setXAccessToken(
+                \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Oauth\Helper\Oauth::class)->generateTokenSecret()
+            );
+            $this->merchantRepository->save($merchant);
         }
         $this->runtimeCache[$this->getCachedId($sessId)] = $merchant;
         return $merchant;

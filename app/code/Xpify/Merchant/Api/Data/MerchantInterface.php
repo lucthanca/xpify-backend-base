@@ -17,6 +17,7 @@ interface MerchantInterface
     const STATE = 'state';
     const SCOPE = 'scope';
     const ACCESS_TOKEN = 'access_token';
+    const X_ACCESS_TOKEN = 'x_access_token';
     const STOREFRONT_ACCESS_TOKEN = 'storefront_access_token';
     const EXPIRES_AT = 'expires_at';
     const USER_ID = 'user_id';
@@ -369,4 +370,8 @@ interface MerchantInterface
     public function getRest(): ?Rest;
 
     public function getStoreFront(): ?Storefront;
+
+    public function getXAccessToken(): ?string;
+
+    public function setXAccessToken(?string $xAccessToken): self;
 }

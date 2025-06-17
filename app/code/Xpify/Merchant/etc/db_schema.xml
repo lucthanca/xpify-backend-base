@@ -10,7 +10,7 @@
         <column xsi:type="varchar" name="scope" nullable="true" length="255" comment="Merchant Allowed scopes"/>
         <column xsi:type="varchar" name="access_token" nullable="true" length="255" comment="Shopify Access Token"/>
         <column xsi:type="varchar" name="storefront_access_token" nullable="true" length="255" comment="Shopify Storefront Access Token"/>
-<!--        <column xsi:type="varchar" name="x_access_token" nullable="true" length="128" comment="Access Token to communicate with X Eco System"/>-->
+        <column xsi:type="varchar" name="x_access_token" nullable="true" length="128" comment="Access Token to communicate with X Eco System"/>
         <column xsi:type="datetime" name="expires_at" nullable="true" comment="Expire time"/>
         <column xsi:type="bigint" unsigned="true" padding="20" name="user_id" nullable="true" />
         <column xsi:type="varchar" name="user_first_name" nullable="true" length="255" comment="Merchant First Name"/>
@@ -31,6 +31,9 @@
         <constraint xsi:type="unique" referenceId="$XPIFY_MERCHANTS_SESSION_ID_APP_ID">
             <column name="session_id"/>
             <column name="app_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="$XPIFY_MERCHANTS_X_ACCESS_TOKEN">
+            <column name="x_access_token"/>
         </constraint>
     </table>
 

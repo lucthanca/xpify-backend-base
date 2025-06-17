@@ -7,6 +7,7 @@ use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Xpify\AuthGraphQl\Model\Resolver\AuthSessionAbstractResolver;
+use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 
 class MyShopQuery extends AuthSessionAbstractResolver implements ResolverInterface
 {
@@ -23,6 +24,7 @@ class MyShopQuery extends AuthSessionAbstractResolver implements ResolverInterfa
      */
     public function execResolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
+        /** @var IMerchant $merchant */
         $merchant = $context->getExtensionAttributes()->getMerchant();
         $apiVersion = \Shopify\Context::$API_VERSION;
 
@@ -32,6 +34,6 @@ class MyShopQuery extends AuthSessionAbstractResolver implements ResolverInterfa
 
         $uid = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\GraphQl\Query\Uid::class);
         $shop = $response->getDecodedBody()['shop'] ?? null;
-        return is_array($shop) ? array_merge($shop, ['id' => $uid->encode((string) $shop['myshopify_domain'])]) : null;
+        return is_array($shop) ? array_merge($shop, ['id' => $uid->encode((string) $shop['myshopify_domain']), 'x_access_token' => $merchant->getXAccessToken()]) : null;
     }
 }
