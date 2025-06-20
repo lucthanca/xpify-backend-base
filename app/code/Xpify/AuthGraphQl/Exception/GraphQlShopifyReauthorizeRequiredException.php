@@ -70,7 +70,7 @@ class GraphQlShopifyReauthorizeRequiredException extends LocalizedException
      */
     public function getReauthorizeUrl(): ?string
     {
-        return $this->failureReauthorizeUrl;
+        return urldecode($this->failureReauthorizeUrl);
     }
 
     public function getCategory() : string
