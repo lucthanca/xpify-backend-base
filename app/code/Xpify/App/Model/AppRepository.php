@@ -23,6 +23,12 @@ class AppRepository implements AppRepositoryInterface
     private SearchResultsFactory $searchResultsFactory;
 
     /**
+     * Runtime cache for apps by field and value
+     * @var array
+     */
+    private array $cache = [];
+
+    /**
      * @param App $resource
      * @param AppFactory $appFactory
      * @param LoggerInterface $logger
@@ -51,6 +57,13 @@ class AppRepository implements AppRepositoryInterface
      */
     public function get($value, $field = 'entity_id')
     {
+        $cacheKey = $field . '_' . $value;
+
+        // Check cache first
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
+        }
+
         $app = $this->newInstance();
         try {
             $this->resource->load($app, $value, $field);
@@ -61,6 +74,10 @@ class AppRepository implements AppRepositoryInterface
         if (!$app->getId()) {
             throw new NoSuchEntityException(__('Unable to find app with ID "%1"', $value));
         }
+
+        // Store in cache
+        $this->cacheApp($app, $field, $value);
+
         return $app;
     }
 
@@ -71,6 +88,10 @@ class AppRepository implements AppRepositoryInterface
     {
         try {
             $this->resource->save($app);
+
+            // Cache the updated app
+            $this->cacheApp($app);
+
             return $app;
         } catch (\Throwable $e) {
             $this->logger->debug($e->getMessage());
@@ -88,6 +109,8 @@ class AppRepository implements AppRepositoryInterface
     {
         try {
             $this->resource->delete($app);
+            // Clear the app from cache
+            $this->cacheApp($app);
             return true;
         } catch (\Throwable $e) {
             $this->logger->debug($e->getMessage());
@@ -133,5 +156,47 @@ class AppRepository implements AppRepositoryInterface
     public function newInstance()
     {
         return $this->appFactory->create();
+    }
+
+    /**
+     * Cache an app instance by all its field values
+     *
+     * @param IApp $app
+     * @param string $field
+     * @param mixed|null $value
+     * @return void
+     */
+    private function cacheApp(IApp $app, string $field = IApp::ID, mixed $value = null): void
+    {
+        if (!$app->getId()) {
+            return;
+        }
+        if ($value === null) {
+            $value = $app->getData($field);
+            if (!$value) {
+                return;
+            }
+        }
+        $cacheKey = $field . '_' . $value;
+        if ($app->isDeleted()) {
+            foreach ($this->cache[$cacheKey] as $key => $cachedApp) {
+                if ($cachedApp->getId() === $app->getId()) {
+                    unset($this->cache[$key]);
+                }
+            }
+            return;
+        }
+        if ($field !== IApp::ID) {
+            $idCacheKey = IApp::ID . '_' . $app->getId();
+            // Ensure the app is also cached by its ID
+            if (!isset($this->cache[$idCacheKey]) || $this->cache[$idCacheKey] !== $app) {
+                $this->cache[$idCacheKey] = $app;
+            }
+        }
+        $currentApp = $this->cache[$cacheKey] ?? null;
+        // Only cache if the app is not already cached or if it ref changes
+        if (!$currentApp || $currentApp !== $app) {
+            $this->cache[$cacheKey] = $app;
+        }
     }
 }
