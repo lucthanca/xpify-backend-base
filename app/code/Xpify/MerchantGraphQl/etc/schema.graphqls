@@ -27,6 +27,7 @@ type Shop @doc(description: "Follow guide Shopify") {
     domain: String
     myshopify_domain: String
     x_access_token: String # @doc(description: "Token for authentication, currently is used for WSS connection")
+    created_at: Int
 }
 
 type SubscribePricingPlanOutput {
