@@ -68,14 +68,16 @@ QUERY;
                     $unserialized = $json->unserialize($shopInfo);
                     $unserializedShop = $unserialized['shop'] ?? [];
                     if (!empty($unserializedShop)) {
+                        $shopifyDomain = $unserializedShop['myshopify_domain'] ?? $merchant->getShop();
                         return [
-                            'id' => \Xpify\Core\Helper\Utils::idToUid($unserializedShop['myshopify_domain'] ?? $merchant->getShop()),
+                            'id' => \Xpify\Core\Helper\Utils::idToUid($shopifyDomain),
                             'x_access_token' => $merchant->getXAccessToken(),
                             'domain' => $unserializedShop['domain'],
                             'email' => $unserializedShop['email'],
                             'shop_owner' => $unserializedShop['shop_owner'],
                             'name' => $unserializedShop['name'],
                             'created_at' => $createdAtDate->getTimestamp(),
+                            'myshopify_domain' => $shopifyDomain,
                         ];
                     }
                 }
