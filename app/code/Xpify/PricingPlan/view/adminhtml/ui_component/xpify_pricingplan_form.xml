@@ -94,6 +94,31 @@
             </formElements>
         </field>
 
+        <field name="default" sortOrder="20" formElement="checkbox">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">block</item>
+                    <item name="default" xsi:type="number">0</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Is Default</label>
+                <dataScope>default</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+
         <field name="code" sortOrder="50" formElement="input">
             <settings>
                 <dataType>text</dataType>
@@ -151,6 +176,25 @@
                         </select>
                     </formElements>
                 </field>
+                <field name="compare_at_price" formElement="input">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="fit" xsi:type="boolean">false</item>
+                        </item>
+                    </argument>
+                    <settings>
+                        <validation>
+                            <rule name="required-entry" xsi:type="boolean">false</rule>
+                            <rule name="not-negative-amount" xsi:type="boolean">true</rule>
+                            <rule name="validate-number" xsi:type="boolean">true</rule>
+                        </validation>
+                        <dataType>price</dataType>
+                        <label>Compare-at-price</label>
+                        <imports>
+                            <link name="addbefore">${ $.provider }:data.currency</link>
+                        </imports>
+                    </settings>
+                </field>
                 <field name="amount" formElement="input">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
@@ -188,7 +232,92 @@
             </container>
         </dynamicRows>
 
+        <dynamicRows name="badges" sortOrder="270">
+            <settings>
+                <label translate="true">Badges</label>
+                <addButtonLabel translate="true">Add Badges</addButtonLabel>
+                <additionalClasses>
+                    <class name="xpify__dynamic-ui-fixes">true</class>
+                </additionalClasses>
+                <componentType>dynamicRows</componentType>
+                <dndConfig>
+                    <param name="enabled" xsi:type="boolean">false</param>
+                </dndConfig>
+            </settings>
+            <container name="record" component="Magento_Ui/js/dynamic-rows/record">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="isTemplate" xsi:type="boolean">true</item>
+                        <item name="is_collection" xsi:type="boolean">true</item>
+                        <item name="componentType" xsi:type="string">container</item>
+                    </item>
+                </argument>
+                <field name="tone" component="Magento_Ui/js/form/element/select" formElement="select">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Badge Tone</label>
+                        <dataScope>tone</dataScope>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Xpify\PricingPlan\Model\Source\BadgeType"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+                <field name="content" formElement="input">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="fit" xsi:type="boolean">false</item>
+                        </item>
+                    </argument>
+                    <settings>
+                        <validation>
+                            <rule name="required-entry" xsi:type="boolean">true</rule>
+                            <rule name="max_text_length" xsi:type="number">32</rule>
+                        </validation>
+                        <dataType>text</dataType>
+                        <dataScope>content</dataScope>
+                        <label>Content</label>
+                    </settings>
+                </field>
+                <actionDelete template="Magento_Backend/dynamic-rows/cells/action-delete">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="fit" xsi:type="boolean">false</item>
+                        </item>
+                    </argument>
+                    <settings>
+                        <additionalClasses>
+                            <class name="data-grid-actions-cell">true</class>
+                        </additionalClasses>
+                        <dataType>text</dataType>
+                        <label>Actions</label>
+                        <componentType>actionDelete</componentType>
+                    </settings>
+                </actionDelete>
+            </container>
+        </dynamicRows>
+
+        <field name="short_description" sortOrder="295" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Short description</label>
+                <visible>true</visible>
+                <validation>
+                    <rule name="max_text_length" xsi:type="number">255</rule>
+                </validation>
+            </settings>
+        </field>
+
         <field name="description" sortOrder="300" formElement="textarea">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="fit" xsi:type="boolean">false</item>
+                    <item name="rows" xsi:type="number">5</item>
+                </item>
+            </argument>
             <settings>
                 <dataType>text</dataType>
                 <label translate="true">Description</label>
@@ -196,42 +325,18 @@
             </settings>
         </field>
 
-<!--        <field name="enable_free_trial" sortOrder="400" formElement="checkbox">-->
-<!--            <argument name="data" xsi:type="array">-->
-<!--                <item name="config" xsi:type="array">-->
-<!--                    <item name="source" xsi:type="string">block</item>-->
-<!--                    <item name="default" xsi:type="number">0</item>-->
-<!--                </item>-->
-<!--            </argument>-->
-<!--            <settings>-->
-<!--                <dataType>boolean</dataType>-->
-<!--                <label translate="true">Enable Free Trial</label>-->
-<!--                <dataScope>enable_free_trial</dataScope>-->
-<!--            </settings>-->
-<!--            <formElements>-->
-<!--                <checkbox>-->
-<!--                    <settings>-->
-<!--                        <valueMap>-->
-<!--                            <map name="false" xsi:type="number">0</map>-->
-<!--                            <map name="true" xsi:type="number">1</map>-->
-<!--                        </valueMap>-->
-<!--                        <prefer>toggle</prefer>-->
-<!--                    </settings>-->
-<!--                </checkbox>-->
-<!--            </formElements>-->
-<!--        </field>-->
-
-<!--        <field name="free_trial_days" sortOrder="500" formElement="input">-->
-<!--            <settings>-->
-<!--                <dataType>text</dataType>-->
-<!--                <label translate="true">Free Trial Days</label>-->
-<!--                <visible>true</visible>-->
-<!--                <validation>-->
-<!--                    <rule name="validate-digits" xsi:type="boolean">true</rule>-->
-<!--                    <rule name="not-negative-amount" xsi:type="boolean">true</rule>-->
-<!--                </validation>-->
-<!--            </settings>-->
-<!--        </field>-->
+        <field name="free_trial_days" sortOrder="500" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Free Trial Days</label>
+                <visible>true</visible>
+                <validation>
+                    <rule name="validate-digits" xsi:type="boolean">true</rule>
+                    <rule name="not-negative-amount" xsi:type="boolean">true</rule>
+                </validation>
+                <notice translate="true">Disable free trial by setting to 0</notice>
+            </settings>
+        </field>
 
         <field name="sort_order" sortOrder="600" formElement="input">
             <settings>

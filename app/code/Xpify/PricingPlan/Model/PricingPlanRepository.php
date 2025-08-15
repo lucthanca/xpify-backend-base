@@ -87,6 +87,8 @@ class PricingPlanRepository implements PricingPlanRepositoryInterface
         try {
             $this->resource->save($obj);
             return $obj;
+        } catch (\Magento\Framework\Exception\AlreadyExistsException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             $this->logger->debug($e);
             throw new \Magento\Framework\Exception\CouldNotSaveException(__('Unable to save pricing plan.'));

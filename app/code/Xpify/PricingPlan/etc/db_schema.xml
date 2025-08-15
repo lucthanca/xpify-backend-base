@@ -3,11 +3,15 @@
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
     <table name="$xpify_pricing_plans" resource="default" engine="innodb" comment="Pricing Plans">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" />
-        <column xsi:type="smallint" name="status" unsigned="true" nullable="false" default="1" comment="Enable plan" />
+        <column xsi:type="smallint" name="status" padding="2" unsigned="true" nullable="false" default="1" comment="Enable plan" />
+        <column xsi:type="smallint" name="default" padding="2" unsigned="true" nullable="false" default="0" comment="As Default Plan" />
         <column xsi:type="varchar" name="code" length="255" comment="Plan code" />
         <column xsi:type="varchar" name="name" length="255" comment="Plan name" />
         <column xsi:type="text" name="description" nullable="true" comment="Plan description"/>
+        <column xsi:type="varchar" name="short_description" length="255" nullable="true" comment="Shor plan description"/>
         <column xsi:type="text" name="prices" nullable="true" comment="Plan interval prices data"/>
+        <column xsi:type="smallint" name="free_trial_days" nullable="true" padding="2" unsigned="true" comment="Plan free trial days"/>
+        <column xsi:type="text" name="badges" nullable="true" comment="Badges data"/>
         <column xsi:type="int" name="sort_order" unsigned="true" nullable="false" default="0" comment="Sort order" />
         <column xsi:type="int" name="app_id" unsigned="true" nullable="false" comment="App ID"/>
         <constraint xsi:type="foreign" referenceId="$XPIFY_PRICING_PLANS_APP_ID_$XPIFY_APPS_ENTITY_ID" table="$xpify_pricing_plans"
@@ -15,8 +19,8 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
-        <constraint xsi:type="unique" referenceId="$XPIFY_PRICING_PLANS_CODE_APP_ID">
-            <column name="code"/>
+        <constraint xsi:type="unique" referenceId="$XPIFY_PRICING_PLANS_NAME_APP_ID">
+            <column name="name"/>
             <column name="app_id"/>
         </constraint>
         <index referenceId="$XPIFY_PRICING_PLANS_ENTITY_ID" indexType="btree">

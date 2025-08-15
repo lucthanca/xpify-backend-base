@@ -17,10 +17,27 @@ interface PricingPlanInterface
     const APP_ID = 'app_id';
     const SORT_ORDER = 'sort_order';
     const PRICES = 'prices';
+    const BADGES = 'badges';
     const CODE = 'code';
+    const SHORT_DESCRIPTION = 'short_description';
+    const DEFAULT = 'default';
 
-//    const FREE_TRIAL_DAYS = 'free_trial_days';
-//    const ENABLE_FREE_TRIAL = 'enable_free_trial';
+    const FREE_TRIAL_DAYS = 'free_trial_days';
+
+    /**
+     * Get default plan
+     *
+     * @return bool
+     */
+    public function getDefault(): bool;
+
+    /**
+     * Set default plan
+     *
+     * @param mixed $default
+     * @return self
+     */
+    public function setDefault(string|int|bool $default): PricingPlanInterface;
 
     /**
      * Get plan code
@@ -82,55 +99,58 @@ interface PricingPlanInterface
      */
     public function setDescription(?string $description): self;
 
-//    /**
-//     * Get price
-//     *
-//     * @return float
-//     */
-//    public function getPrice(): float;
-//
-//    /**
-//     * Set price
-//     *
-//     * @param float $price
-//     * @return $this
-//     */
-//    public function setPrice(mixed $price): self;
+    /**
+     * Get short description
+     *
+     * @return string|null
+     */
+    public function getShortDescription(): ?string;
 
-//    /**
-//     * Get free trial days
-//     *
-//     * @return int|null
-//     */
-//    public function getFreeTrialDays(): ?int;
-//
-//    /**
-//     * Set free trial days
-//     *
-//     * @param int $freeTrialDays
-//     * @return $this
-//     */
-//    public function setFreeTrialDays(int $freeTrialDays): self;
+    /**
+     * Set short description
+     *
+     * @param string|null $shortDescription
+     * @return $this
+     */
+    public function setShortDescription(?string $shortDescription): self;
 
-//    /**
-//     * Check if free trial is enabled
-//     *
-//     * @return bool
-//     */
-//    public function isEnableFreeTrial(): bool;
-//
-//    /**
-//     * @return int|null
-//     */
-//    public function getEnableFreeTrial(): ?int;
+    /**
+     * Get free trial days
+     *
+     * @return int|null
+     */
+    public function getFreeTrialDays(): ?int;
 
-//    /**
-//     * Set enable free trial
-//     *
-//     * @param int|bool|null $enableFreeTrial
-//     * @return $this
-//     */
-//    public function setEnableFreeTrial(mixed $enableFreeTrial): self;
+    /**
+     * Set free trial days
+     *
+     * @param int $freeTrialDays
+     * @return $this
+     */
+    public function setFreeTrialDays(int $freeTrialDays): self;
+
+    /**
+     * Check if free trial is enabled
+     *
+     * @return bool
+     */
+    public function isEnableFreeTrial(): bool;
+
+    /**
+     * Get badges raw json string
+     *
+     * @param bool $parsed
+     * @return string|null|array
+     */
+    public function getBadges(bool $parsed = true): null|string|array;
+
+    /**
+     * Set badges
+     *
+     * @param string|array|null $badges
+     * @return $this
+     */
+    public function setBadges(string|array|null $badges): self;
 
     /**
      * Get sort order

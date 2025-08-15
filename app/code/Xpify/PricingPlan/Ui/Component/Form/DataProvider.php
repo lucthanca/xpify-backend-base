@@ -87,6 +87,7 @@ class DataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
             $item->getData(),
             [
                 IPricingPlan::PRICES => $item->getDataPrices(),
+                IPricingPlan::BADGES => $item->getBadges(),
             ]
         );
     }

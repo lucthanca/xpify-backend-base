@@ -7,6 +7,28 @@ type Query {
 type Interval {
     interval: String! @doc(description: "Interval type. One of: ONE_TIME, EVERY_30_DAYS, ANNUAL")
     amount: Float!
+    compare_at_price: Float @doc(description: "Price before discount")
+}
+
+enum BadgeTone {
+    INFO @doc(description: "Blue badge tone")
+    SUCCESS @doc(description: "Green badge tone")
+    WARNING @doc(description: "Yellow badge tone")
+    CRITICAL @doc(description: "Red badge tone")
+    ATTENTION @doc(description: "Orange badge tone")
+    NEW @doc(description: "New badge tone")
+    MAGIC @doc(description: "Purple badge tone")
+    INFO_STRONG @doc(description: "Strong blue badge tone")
+    SUCCESS_STRONG @doc(description: "Strong green badge tone")
+    WARNING_STRONG @doc(description: "Strong yellow badge tone")
+    CRITICAL_STRONG @doc(description: "Strong red badge tone")
+    ATTENTION_STRONG @doc(description: "Strong orange badge tone")
+    READ_ONLY @doc(description: "Read-only badge tone")
+    ENABLED @doc(description: "Enabled badge tone")
+}
+type Badge {
+    content: String! @doc(description: "Badge content")
+    tone: BadgeTone! @doc(description: "Badge color in hex format")
 }
 
 type PricingPlan {
@@ -15,7 +37,10 @@ type PricingPlan {
     code: String!
     name: String!
     prices: [Interval] @doc(description: "Prices for each interval")
+    badges: [Badge] @doc(description: "Badges associated with the pricing plan")
     currency: String! @doc(description: "Currency code. Currently only USD is supported")
+    free_trial_days: Int @doc(description: "Number of free trial days")
+    short_description: String @doc(description: "Short description of the pricing plan")
     description: String
     sort_order: Int
 }

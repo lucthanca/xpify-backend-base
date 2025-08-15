@@ -57,7 +57,7 @@ class AppPricingPlanQuery extends AuthSessionAbstractResolver implements \Magent
                 $items[] = PricingPlanFormatter::toGraphQlOutput($item);
             }
             return $items;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return [];
         }
     }

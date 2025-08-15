@@ -59,6 +59,11 @@ class Save extends Action implements HttpPostActionInterface
                 'message' => __('Pricing Plan saved successfully.'),
                 'error' => false,
             ];
+        } catch (\Magento\Framework\Exception\AlreadyExistsException $e) {
+            $resData = [
+                'message' => __('Pricing Plan with the same name already exists.'),
+                'error' => true,
+            ];
         } catch (\Exception $e) {
             $resData = [
                 'message' => $e->getMessage(),
@@ -99,5 +104,9 @@ class Save extends Action implements HttpPostActionInterface
         }
 
         $payload[IPricingPlan::PRICES] = json_encode($payload[IPricingPlan::PRICES]);
+
+        if (!empty($payload[IPricingPlan::BADGES])) {
+            $payload[IPricingPlan::BADGES] = json_encode($payload[IPricingPlan::BADGES]);
+        }
     }
 }

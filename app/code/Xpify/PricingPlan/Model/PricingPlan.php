@@ -51,6 +51,31 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
     /**
      * @inheritDoc
      */
+    public function getDefault(): bool
+    {
+        $default = $this->getData(self::DEFAULT);
+        if (is_string($default)) {
+            return filter_var($default, FILTER_VALIDATE_BOOLEAN);
+        }
+        return (bool) $default;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setDefault(bool|int|string $default): PricingPlanInterface
+    {
+        if (is_bool($default) || is_int($default)) {
+            $default = (int) $default;
+        } elseif (is_string($default)) {
+            $default = filter_var($default, FILTER_VALIDATE_BOOLEAN);
+        }
+        return $this->setData(self::DEFAULT, $default);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getCode(): ?string
     {
         return $this->getData(self::CODE);
@@ -94,6 +119,15 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
         return $this->setData(self::DESCRIPTION, $description);
     }
 
+    public function getShortDescription(): ?string
+    {
+        return $this->getData(self::SHORT_DESCRIPTION);
+    }
+    public function setShortDescription(?string $shortDescription): self
+    {
+        return $this->setData(self::SHORT_DESCRIPTION, $shortDescription);
+    }
+
     /**
      * Get interval price as array
      *
@@ -108,6 +142,12 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
         if (empty($this->decodedPrices)) {
             try {
                 $this->decodedPrices = json_decode($this->getData(self::PRICES), true);
+                // mapping for compare_at_price, ensure that value must be float
+                $this->decodedPrices = array_map(fn ($price) => [
+                    'interval' => $price['interval'],
+                    'amount' => (float) $price['amount'],
+                    'compare_at_price' => isset($price['compare_at_price']) ? (float) $price['compare_at_price'] : null,
+                ], $this->decodedPrices);
             } catch (\Exception $e) {
                 $this->decodedPrices = [];
             }
@@ -200,5 +240,65 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
         }
 
         return null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getFreeTrialDays(): ?int
+    {
+        $freeTrialDays = (int) $this->getData(self::FREE_TRIAL_DAYS);
+        return $freeTrialDays > 0 ? $freeTrialDays : null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setFreeTrialDays(int $freeTrialDays): PricingPlanInterface
+    {
+        if ($freeTrialDays > 0) {
+            $this->setData(self::FREE_TRIAL_DAYS, $freeTrialDays);
+        } else {
+            $this->unsetData(self::FREE_TRIAL_DAYS);
+        }
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isEnableFreeTrial(): bool
+    {
+        $freeTrialDays = $this->getFreeTrialDays();
+        return $freeTrialDays !== null && $freeTrialDays > 0;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getBadges(bool $parsed = true): null|string|array
+    {
+        $badges = $this->getData(self::BADGES);
+        if ($parsed && is_string($badges)) {
+            try {
+                $badges = json_decode($badges, true);
+            } catch (\Exception $e) {
+                $badges = null;
+            }
+        }
+        return $badges;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setBadges(array|string|null $badges): PricingPlanInterface
+    {
+        if (is_array($badges)) {
+            $badges = json_encode($badges);
+        } elseif (is_string($badges) && empty($badges)) {
+            $badges = null;
+        }
+        return $this->setData(self::BADGES, $badges);
     }
 }

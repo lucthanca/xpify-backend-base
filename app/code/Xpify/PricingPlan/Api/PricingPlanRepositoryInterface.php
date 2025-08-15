@@ -25,7 +25,7 @@ interface PricingPlanRepositoryInterface
      *
      * @param IPricingPlan $obj
      * @return IPricingPlan
-     * @throws \Magento\Framework\Exception\CouldNotSaveException
+     * @throws \Magento\Framework\Exception\CouldNotSaveException|\Magento\Framework\Exception\AlreadyExistsException
      */
     public function save(IPricingPlan $obj): IPricingPlan;
 
