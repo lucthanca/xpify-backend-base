@@ -108,5 +108,20 @@ class Save extends Action implements HttpPostActionInterface
         if (!empty($payload[IPricingPlan::BADGES])) {
             $payload[IPricingPlan::BADGES] = json_encode($payload[IPricingPlan::BADGES]);
         }
+        // Check if payload default === 1 or true, then check if there is any other plan with default === 1, and throw exception if exists
+        if (!empty($payload[IPricingPlan::DEFAULT]) && in_array($payload[IPricingPlan::DEFAULT], [1, true, '1'], true)) {
+            $criteriaBuilder = \Magento\Framework\App\ObjectManager::getInstance()->create(\Magento\Framework\Api\SearchCriteriaBuilder::class);
+            $criteriaBuilder->addFilter(IPricingPlan::APP_ID, $payload[IPricingPlan::APP_ID]);
+            $criteriaBuilder->addFilter(IPricingPlan::DEFAULT, IPricingPlan::IS_DEFAULT);
+            $criteriaBuilder->addFilter(IPricingPlan::ID, $payload[IPricingPlan::ID] ?? null, 'neq');
+            $criteriaBuilder->setPageSize(1);
+            $searchResult = $this->pricingPlanRepository->getList($criteriaBuilder->create());
+            if ($searchResult->getTotalCount() > 0) {
+                $planName = array_values($searchResult->getItems())[0]?->getName() ?? 'Unknown Plan';
+                throw new \Magento\Framework\Exception\InputException(__('There is already a default plan for this app: %1', $planName));
+            }
+        } else {
+            $payload[IPricingPlan::DEFAULT] = false; // Ensure default is set
+        }
     }
 }

@@ -8,6 +8,8 @@ use Xpify\App\Api\Data\AppInterface;
 interface PricingPlanInterface
 {
     const BASE_CURRENCY = AppInterface::CURRENCY_CODE;
+    const STATUS_ACTIVE = 1;
+    const IS_DEFAULT = 1;
 
     const ID = 'entity_id';
     const STATUS = 'status';

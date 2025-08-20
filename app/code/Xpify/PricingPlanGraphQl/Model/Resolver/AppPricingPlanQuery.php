@@ -48,6 +48,7 @@ class AppPricingPlanQuery extends AuthSessionAbstractResolver implements \Magent
                 throw new GraphQlInputException(__(Constants::INTERNAL_SYSTEM_ERROR_MESS));
             }
             $this->criteriaBuilder->addFilter(PricingPlanInterface::APP_ID, $id);
+            $this->criteriaBuilder->addFilter(PricingPlanInterface::STATUS, PricingPlanInterface::STATUS_ACTIVE);
             $this->sorderBuilder->setField(PricingPlanInterface::SORT_ORDER);
             $this->sorderBuilder->setAscendingDirection();
             $this->criteriaBuilder->addSortOrder($this->sorderBuilder->create());

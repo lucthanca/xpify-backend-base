@@ -159,8 +159,16 @@ class Success implements IAction
                 $subscription->setSubscriptionId($chargeId);
                 $subscription = $this->subscriptionRepository->save($subscription);
             } catch (\Throwable $e) {
-                $this->logger->debug($e);
-                throw new GraphQlInputException(__("Can't subscribe to this plan! Please try again later."));
+                $details = [
+                    'merchant_id' => $merchant->getId(),
+                    'app_id' => $app->getId(),
+                    'plan_id' => $plan->getId(),
+                    'charge_id' => $chargeId,
+                    'interval' => $interval,
+                    'created_at' => $createdAt ?? null,
+                ];
+                Logger::getLogger("App.subscription.log")->debug("Lỗi khi save subscription vào DB. {$e->getMessage()}. Trace: {$e->getTraceAsString()}");
+                throw new PurchaseSectionException("Our system failed. Please contact us for support.");
             }
 
             $this->eventManager->dispatch('xpify_merchant_subscription_success', [
