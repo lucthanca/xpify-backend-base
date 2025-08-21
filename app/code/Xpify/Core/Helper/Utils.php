@@ -117,32 +117,38 @@ final class Utils
      * @param string $scope
      * @param int|null $scopeCode
      * @param bool $parse - parse the value to array
+     * @param bool $useCache - use Magento default cache getter
      * @return string|array|null
      */
-    public static function getConfig(string $path, string $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, int $scopeCode = null, bool $parse = false)
+    public static function getConfig(string $path, string $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, int $scopeCode = null, bool $parse = false, bool $useCache = false)
     {
-        $resourceConnection = \Magento\Framework\App\ObjectManager::getInstance()->get(ResourceConnection::class);
-        $connection = $resourceConnection->getConnection();
-        $tableName = $connection->getTableName('core_config_data');
-        if ($scope === 'store') {
-            $scope = 'stores';
-        } elseif ($scope === 'website') {
-            $scope = 'websites';
+        if ($useCache) {
+            $scopeConfig = \Magento\Framework\App\ObjectManager::getInstance()->get(ScopeConfigInterface::class);
+            $value = $scopeConfig->getValue($path, $scope, $scopeCode);
+        } else {
+            $resourceConnection = \Magento\Framework\App\ObjectManager::getInstance()->get(ResourceConnection::class);
+            $connection = $resourceConnection->getConnection();
+            $tableName = $connection->getTableName('core_config_data');
+            if ($scope === 'store') {
+                $scope = 'stores';
+            } elseif ($scope === 'website') {
+                $scope = 'websites';
+            }
+            $select = $connection->select()->from(
+                ['core_config_data' => $tableName],
+                ['value']
+            )->where(
+                'path = ?',
+                $path
+            )->where(
+                'scope = ?',
+                $scope
+            )->where(
+                'scope_id = ?',
+                $scopeCode
+            );
+            $value = $connection->fetchOne($select);
         }
-        $select = $connection->select()->from(
-            ['core_config_data' => $tableName],
-            ['value']
-        )->where(
-            'path = ?',
-            $path
-        )->where(
-            'scope = ?',
-            $scope
-        )->where(
-            'scope_id = ?',
-            $scopeCode
-        );
-        $value = $connection->fetchOne($select);
         if (empty($value)) {
             return null;
         }

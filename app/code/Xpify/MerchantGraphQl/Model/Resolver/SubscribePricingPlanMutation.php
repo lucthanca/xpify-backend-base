@@ -88,6 +88,8 @@ class SubscribePricingPlanMutation extends AuthSessionAbstractResolver implement
             throw new GraphQlAlreadyExistsException(__($e->getMessage()));
         } catch (GraphQlShopifyReauthorizeRequiredException $e) {
             throw $e;
+        } catch (ShopifyBillingException $e) {
+            throw new GraphQlNoSuchEntityException(__($e->getMessage()));
         } catch (\Exception $e) {
             Logger::getLogger('subscription.log')->debug($e->getMessage() . ' ' . $e->getTraceAsString());
             throw new GraphQlNoSuchEntityException(__(Constants::INTERNAL_SYSTEM_ERROR_MESS));

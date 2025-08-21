@@ -9,10 +9,12 @@ use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Query\ResolverInterface as IResolver;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Xpify\AuthGraphQl\Model\Resolver\AuthSessionAbstractResolver;
+use Xpify\Core\Helper\Utils;
 use Xpify\Core\Model\Constants;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 use Xpify\PricingPlan\Api\PricingPlanRepositoryInterface as IPricingPlanRepository;
+use Xpify\Merchant\Api\Data\MerchantSubscriptionInterface as ISubscription;
 
 class ActivePlanResolver extends AuthSessionAbstractResolver implements IResolver
 {
@@ -62,8 +64,42 @@ class ActivePlanResolver extends AuthSessionAbstractResolver implements IResolve
                 return null;
             }
             $subscription = reset($items);
+            $createdAt = null;
+            // get interval price from default plan, if it has many intervals, should select every 30 days first > annual > one time
+            $intervals = $subscription->getDataPrices();
+            // loop through intervals to find the first one
+            $interval = null;
+            $price = null;
+            foreach ($intervals as $intervalPrice) {
+                $interval = $intervalPrice['interval'] ?? 'ONE_TIME';
+                $price = $intervalPrice['amount'] ?? 0.0;
+                if ($interval === 'EVERY_30_DAYS') {
+                    break;
+                }
+                if ($interval === 'ANNUAL') {
+                    break;
+                }
+                if ($interval === 'ONE_TIME') {
+                    break;
+                }
+            }
+            $id = $subscription->getId();
+            $status = 'ACTIVE';
+        } else {
+            $id = $subscription->getPlanId();
+            $status = $subscription->getStatus();
+            $createdAt = $subscription->getCreatedAt();
+            $interval = $subscription->getInterval();
+            $price = $subscription->getPrice();
         }
-
-        return $subscription->getData();
+        return [
+            'id' => Utils::idToUid($id . ""),
+            'status' => $status,
+            'name' => $subscription->getName(),
+            'code' => $subscription->getCode(),
+            'interval' => $interval,
+            'price' => $price,
+            'created_at' => $createdAt,
+        ];
     }
 }
