@@ -17,12 +17,52 @@ interface MerchantSubscriptionInterface
     const APP_ID = 'app_id';
     const CODE = 'code';
     const NAME = 'name';
+    const TRIAL_DAYS = 'trial_days';
     const DESCRIPTION = 'description';
     const PRICE = 'price';
     const INTERVAL = 'interval';
     const CREATED_AT = 'created_at';
     const STATUS = 'status';
     const SUBSCRIPTION_ID = 'subscription_id';
+    const CONFIRMATION_URL = 'confirmation_url';
+    const APPLIED_DISCOUNT = 'applied_discount';
+
+    public function getFinalPrice(): float;
+
+    public function getAppliedDiscount(bool $parse = true): string|array|null;
+
+    public function setAppliedDiscount(string|array|null $appliedDiscount): self;
+
+
+    /**
+     * Get confirmation URL
+     *
+     * @return string|null
+     */
+    public function getConfirmationUrl(): ?string;
+
+    /**
+     * Set confirmation URL
+     *
+     * @param string|null $confirmationUrl
+     * @return MerchantSubscriptionInterface
+     */
+    public function setConfirmationUrl(?string $confirmationUrl): self;
+
+    /**
+     * Get trial days
+     *
+     * @return int
+     */
+    public function getTrialDays(): int;
+
+    /**
+     * Set trial days
+     *
+     * @param int $trialDays
+     * @return MerchantSubscriptionInterface
+     */
+    public function setTrialDays(int $trialDays): self;
 
     /**
      * Get transaction status

@@ -65,14 +65,29 @@ class Billing
         $subscription = Subscription::newSubscription();
         $subscription->setName($plan->getName());
         $subscription->setPrice($plan->getIntervalAmount($interval));
+        $subscription->setTrialDays($plan->getFreeTrialDays());
         $subscription->setInterval($interval);
         $config = [
             'chargeName' => $subscription->getName(),
-            'amount' => $subscription->getPrice(),
+            'amount' => 49.0,
             'currencyCode' => \Xpify\App\Api\Data\AppInterface::CURRENCY_CODE,
-            'interval' => $subscription->getInterval(),
+            'interval' => 'EVERY_30_DAYS',
         ];
-        if ($this->hasActivePayment($merchant, $config)) {
+        $activeSubscription = [];
+        if ($this->hasActivePayment($merchant, $config, $activeSubscription)) {
+            try {
+                if (!empty($activeSubscription)) {
+                    $subscription->setStatus($activeSubscription['status']);
+                    $subscription->setTrialDays($activeSubscription['trialDays']);
+                    $subscription->setCreatedAt(date('Y-m-d H:i:s', strtotime($activeSubscription['createdAt'])));
+                    // extract the subscription ID from the global id
+                    $subscriptionId = (int)str_replace('gid://shopify/AppSubscription/', '', $activeSubscription['id']);
+                    $subscription->setSubscriptionId($subscriptionId . "");
+                    $subscription->save();
+                }
+            } catch (\Throwable $e) {
+                self::getLogger()->debug($e->getMessage());
+            }
             throw new AlreadySubscribedException(__("The merchant already has an active payment"), null, self::E_ALREADY_SUBSCRIBED);
         }
         $appUid = Utils::idToUid($merchant->getAppId() . "");
@@ -96,7 +111,20 @@ class Billing
             "/_pid/$pUid" .
             "/_sign/$sign" .
             "?_interval={$subscription->getInterval()}";
-        [$billingUrl] = $this->requestPayment($merchant, $config);
+        [$billingUrl, $createdRemoteSub] = $this->requestPayment($merchant, $config);
+        try {
+            if ($createdRemoteSub) {
+                $subscription->setStatus($createdRemoteSub['status']);
+                $subscription->setSubscriptionId(str_replace('gid://shopify/AppSubscription/', '', $createdRemoteSub['id']));
+                $subscription->setCreatedAt(date('Y-m-d H:i:s', strtotime($createdRemoteSub['createdAt'])));
+                $discount = $createdRemoteSub['lineItems'][0]['plan']['pricingDetails']['discount'] ?? null;
+                $subscription->setAppliedDiscount($discount);
+                $subscription->save();
+            }
+        } catch (\Throwable $e) {
+            self::getLogger()->debug("{$e->getMessage()} | {$e->getTraceAsString()}");
+            throw new ShopifyBillingException("Error while billing the store. Please contact us!");
+        }
         return $billingUrl;
     }
 
@@ -173,14 +201,15 @@ class Billing
      *
      * @param IMerchant $merchant
      * @param array $config
+     * @param array|null $remoteData
      * @return bool
      * @throws ShopifyBillingException
      * @throws NoSuchEntityException
      */
-    public function hasActivePayment(IMerchant $merchant, array $config): bool
+    public function hasActivePayment(IMerchant $merchant, array $config, array &$remoteData = null): bool
     {
         if (self::isRecurring($config)) {
-            return self::hasSubscription($merchant, $config);
+            return self::hasSubscription($merchant, $config, $remoteData);
         } else {
             return self::hasOneTimePayment($merchant, $config);
         }
@@ -321,10 +350,11 @@ class Billing
      *
      * @param IMerchant $merchant
      * @param array $config
+     * @param array|null $activeSubscription - This will be filled with the active subscription details if found
      * @return bool
      * @throws ShopifyBillingException|NoSuchEntityException
      */
-    public static function hasSubscription(IMerchant $merchant, array $config): bool
+    public static function hasSubscription(IMerchant $merchant, array $config, array &$activeSubscription = null): bool
     {
         $responseBody = self::queryOrException($merchant, self::RECURRING_PURCHASES_QUERY);
         $subscriptions = $responseBody["data"]["currentAppInstallation"]["activeSubscriptions"];
@@ -352,6 +382,9 @@ class Billing
                 $subscription["name"] === $config["chargeName"] &&
                 (!self::getCurrentApp()->isProd() || !$subscription["test"])
             ) {
+                if ($activeSubscription !== null) {
+                    $activeSubscription = $subscription;
+                }
                 return true;
             }
         }
@@ -444,7 +477,7 @@ class Billing
     query appSubscription {
         currentAppInstallation {
             activeSubscriptions {
-                name, test, returnUrl
+                name test returnUrl id status trialDays createdAt
             }
         }
     }
@@ -478,6 +511,25 @@ class Billing
             returnUrl: $returnUrl
             test: $test
         ) {
+            appSubscription {
+                id status createdAt
+                lineItems {
+                    plan {
+                        pricingDetails {
+                            ... on AppRecurringPricing {
+                                discount {
+                                    durationLimitInIntervals remainingDurationInIntervals
+                                    priceAfterDiscount {amount}
+                                    value {
+                                        ... on AppSubscriptionDiscountAmount { amount { amount } }
+                                        ... on AppSubscriptionDiscountPercentage { percentage }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             confirmationUrl
             userErrors {
                 field, message

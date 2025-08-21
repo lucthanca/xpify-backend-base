@@ -44,11 +44,15 @@
         <column xsi:type="int" name="app_id" unsigned="true" nullable="false" identity="false" comment="Installed App ID" />
         <column xsi:type="varchar" name="code" length="255" comment="Plan code" />
         <column xsi:type="varchar" name="name" length="255" comment="Plan name" />
+        <column xsi:type="smallint" name="trial_days" unsigned="true" nullable="false" padding="2" comment="The number of free trial days, starting at the subscription's creation date, by which billing is delayed." />
         <column xsi:type="text" name="description" nullable="true" comment="Plan description"/>
         <column xsi:type="decimal" name="price" scale="6" precision="20" unsigned="false" nullable="true" comment="Plan price" />
+        <column xsi:type="decimal" name="final_price" scale="6" precision="20" unsigned="false" nullable="true" comment="Price after discounts" />
+        <column xsi:type="text" name="applied_discount" nullable="true" comment="Applied discounts in JSON format." />
         <column xsi:type="varchar" name="interval" length="16" nullable="true" comment="Billing Interval Type. ONE_TIME, EVERY_30_DAYS, ANNUAL"/>
         <column xsi:type="varchar" name="status" length="16" nullable="true" comment="Transaction status. ACTIVE, DEACTIVATED"/>
         <column xsi:type="varchar" name="subscription_id" length="32" nullable="true" comment="Shopify App Subscription ID"/>
+        <column xsi:type="text" name="confirmation_url" nullable="true" comment="The URL pointing to the page where the merchant approves or declines the charges for an app subscription." />
 
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
                 comment="Subscription Time"/>

@@ -299,4 +299,85 @@ class MerchantSubscription extends AbstractModel implements ISubscription
     {
         return $this->setData(self::SUBSCRIPTION_ID, $subscriptionId);
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getConfirmationUrl(): ?string
+    {
+        return $this->getData(self::CONFIRMATION_URL);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setConfirmationUrl(?string $confirmationUrl): ISubscription
+    {
+        return $this->setData(self::CONFIRMATION_URL, $confirmationUrl);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getTrialDays(): int
+    {
+        $trialDays = $this->getData(self::TRIAL_DAYS);
+        return isset($trialDays) ? (int) $trialDays : 0;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setTrialDays(int $trialDays): ISubscription
+    {
+        if ($trialDays < 0) {
+            $trialDays = 0;
+        }
+        return $this->setData(self::TRIAL_DAYS, $trialDays);
+    }
+
+    /**
+     * Get final price after discount
+     *
+     * @return float
+     */
+    public function getFinalPrice(): float
+    {
+        $appliedDiscount = $this->getAppliedDiscount();
+        $price = $this->getPrice();
+        if (is_array($appliedDiscount) && isset($appliedDiscount['priceAfterDiscount']['amount'])) {
+            $price = (float) $appliedDiscount['priceAfterDiscount']['amount'];
+        }
+        return $price;
+    }
+
+    /**
+     * @param bool $parse
+     * @return string|array|null
+     */
+    public function getAppliedDiscount(bool $parse = true): string|array|null
+    {
+        $appliedDiscount = $this->getData(self::APPLIED_DISCOUNT);
+        if ($parse && is_string($appliedDiscount)) {
+            try {
+                $appliedDiscount = json_decode($appliedDiscount, true);
+            } catch (\Exception $e) {
+                $appliedDiscount = null;
+            }
+        }
+        return $appliedDiscount;
+    }
+
+    public function setAppliedDiscount(array|string|null $appliedDiscount): ISubscription
+    {
+        if ($appliedDiscount !== null) {
+            if (is_array($appliedDiscount)) {
+                $appliedDiscount = json_encode($appliedDiscount);
+            }
+            if (!is_string($appliedDiscount)) {
+                throw new \InvalidArgumentException('Invalid applied discount format');
+            }
+        }
+        return $this->setData(self::APPLIED_DISCOUNT, $appliedDiscount);
+    }
 }
