@@ -119,6 +119,7 @@ class Billing
                 $subscription->setCreatedAt(date('Y-m-d H:i:s', strtotime($createdRemoteSub['createdAt'])));
                 $discount = $createdRemoteSub['lineItems'][0]['plan']['pricingDetails']['discount'] ?? null;
                 $subscription->setAppliedDiscount($discount);
+                $subscription->setConfirmationUrl($billingUrl);
                 $subscription->save();
             }
         } catch (\Throwable $e) {

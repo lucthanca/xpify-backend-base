@@ -60,6 +60,10 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
+
+        <constraint xsi:type="unique" referenceId="$XPIFY_MC_SUBSCRIPTION_SUBSCRIPTION_ID">
+            <column name="subscription_id"/>
+        </constraint>
         <constraint xsi:type="foreign" referenceId="$XPIFY_MC_SUBSCRIPTION_MERCHANT_ID_$XPIFY_MERCHANTS_ENTITY_ID" table="$xpify_merchant_subscription"
                     column="merchant_id" referenceTable="$xpify_merchants" referenceColumn="entity_id"
                     onDelete="CASCADE"/>

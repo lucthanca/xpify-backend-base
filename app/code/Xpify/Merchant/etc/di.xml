@@ -27,4 +27,18 @@
             <argument name="collectionProcessor" xsi:type="object">Xpify\Merchant\Model\Api\SearchCriteria\CollectionProcessor</argument>
         </arguments>
     </type>
+
+    <virtualType name="Shopify_Webhooks_Topics_AppSubscriptionUpdate" type="Xpify\Webhook\Model\WebhookTopic">
+        <arguments>
+            <argument name="topic" xsi:type="const">Shopify\Webhooks\Topics::APP_SUBSCRIPTIONS_UPDATE</argument>
+            <argument name="handler" xsi:type="object">Xpify\Merchant\Service\Webhooks\AppSubscriptionUpdate</argument>
+        </arguments>
+    </virtualType>
+    <type name="Xpify\Webhook\Service\WebhookHandlerRegister">
+        <arguments>
+            <argument name="webhookTopics" xsi:type="array">
+                <item name="APP_SUBSCRIPTIONS_UPDATE" xsi:type="object">Shopify_Webhooks_Topics_AppSubscriptionUpdate</item>
+            </argument>
+        </arguments>
+    </type>
 </config>
