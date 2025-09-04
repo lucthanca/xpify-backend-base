@@ -63,15 +63,21 @@ class Billing
             throw new AlreadySubscribedException(__("The merchant already has an active payment"), null, self::E_ALREADY_SUBSCRIBED);
         }
         $subscription = Subscription::newSubscription();
+        $subscription->setMerchantId((int) $merchant->getId());
+        $subscription->setPlanId($plan->getId());
+        $subscription->setAppId($merchant->getAppId());
+        $subscription->setCode($plan->getCode());
+        $subscription->setDescription($plan->getDescription());
         $subscription->setName($plan->getName());
         $subscription->setPrice($plan->getIntervalAmount($interval));
         $subscription->setTrialDays($plan->getFreeTrialDays());
         $subscription->setInterval($interval);
         $config = [
             'chargeName' => $subscription->getName(),
-            'amount' => 49.0,
+            'amount' => $subscription->getPrice(),
             'currencyCode' => \Xpify\App\Api\Data\AppInterface::CURRENCY_CODE,
-            'interval' => 'EVERY_30_DAYS',
+            'interval' => $interval,
+            'trialDays' => $subscription->getTrialDays(),
         ];
         $activeSubscription = [];
         if ($this->hasActivePayment($merchant, $config, $activeSubscription)) {
@@ -122,6 +128,8 @@ class Billing
                 $subscription->setConfirmationUrl($billingUrl);
                 $subscription->save();
             }
+        } catch (ShopifyBillingException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             self::getLogger()->debug("{$e->getMessage()} | {$e->getTraceAsString()}");
             throw new ShopifyBillingException("Error while billing the store. Please contact us!");
@@ -268,6 +276,7 @@ class Billing
                     ],
                     "returnUrl" => $returnUrl,
                     "test" => !self::getCurrentApp()->isProd(),
+                    "trialDays" => $config["trialDays"] ?? 0
                 ],
             ]
         );
@@ -505,12 +514,14 @@ class Billing
         $lineItems: [AppSubscriptionLineItemInput!]!
         $returnUrl: URL!
         $test: Boolean
+        $trialDays: Int
     ) {
         appSubscriptionCreate(
             name: $name
             lineItems: $lineItems
             returnUrl: $returnUrl
             test: $test
+            trialDays: $trialDays
         ) {
             appSubscription {
                 id status createdAt
