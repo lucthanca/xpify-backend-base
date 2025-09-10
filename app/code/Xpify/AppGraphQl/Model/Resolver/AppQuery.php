@@ -35,6 +35,8 @@ class AppQuery implements ResolverInterface
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
         try {
+            // Can check value la shopify graphql id
+            $this->ensureRemoteId($args);
             $app = $this->appRepository->get($args['value'], $args['field']);
             if (!$app->getId()) {
                 throw new GraphQlNoSuchEntityException(__("App not found!"));
@@ -44,6 +46,19 @@ class AppQuery implements ResolverInterface
             return $output;
         } catch (\Exception $e) {
             throw new GraphQlNoSuchEntityException(__("App not found!"));
+        }
+    }
+
+    /**
+     * Check nếu field là remote_id thì convert value sang id, check nếu ID là shopify graphql ID, ví dụ: gid://shopify/App/93819633665
+     * @param array $args
+     */
+    private function ensureRemoteId(array &$args): void
+    {
+        if ($args['field'] === 'remote_id') {
+            if (str_starts_with($args['value'], 'gid://shopify/App/')) {
+                $args['value'] = str_replace('gid://shopify/App/', '', $args['value']);
+            }
         }
     }
 }

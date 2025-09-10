@@ -60,6 +60,11 @@ class AppSaveMutation implements ResolverInterface
             }, ARRAY_FILTER_USE_KEY);
             if (!empty($filteredChanges)) {
                 foreach ($filteredChanges as $key => $value) {
+                    if ($key === 'remote_id') {
+                        if (str_starts_with($value, 'gid://shopify/App/')) {
+                            $value = str_replace('gid://shopify/App/', '', $value);
+                        }
+                    }
                     $app->setData($key, $value);
                 }
 
