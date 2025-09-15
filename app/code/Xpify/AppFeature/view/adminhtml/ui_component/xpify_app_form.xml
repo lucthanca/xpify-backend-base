@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <fieldset name="app_features">
+        <settings>
+            <label translate="true">App Features</label>
+        </settings>
+        <button name="add_feature" component="Xpify_App/js/pricing-plan/button">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="formElement" xsi:type="string">container</item>
+                    <item name="buttonClasses" xsi:type="string">add-new-plan-button</item>
+                    <item name="actions" xsi:type="array">
+                        <item name="0" xsi:type="array">
+                            <item name="targetName" xsi:type="string">${ $.parentName }.xpify_appfeature_update_modal.xpify_appfeature_form_loader</item>
+                            <item name="actionName" xsi:type="string">destroyInserted</item>
+                        </item>
+                        <item name="1" xsi:type="array">
+                            <item name="targetName" xsi:type="string">${ $.parentName }.xpify_appfeature_update_modal</item>
+                            <item name="actionName" xsi:type="string">openModal</item>
+                        </item>
+                        <item name="2" xsi:type="array">
+                            <item name="targetName" xsi:type="string">${ $.parentName }.xpify_appfeature_update_modal.xpify_appfeature_form_loader</item>
+                            <item name="actionName" xsi:type="string">render</item>
+                        </item>
+                    </item>
+                </item>
+            </argument>
+            <settings>
+                <title translate="true">Add New Feature</title>
+            </settings>
+        </button>
+
+        <modal name="xpify_appfeature_update_modal">
+            <settings>
+                <options>
+                    <option name="title" xsi:type="string" translate="true">Add/Update App Feature</option>
+                </options>
+            </settings>
+            <insertForm name="xpify_appfeature_form_loader" component="Xpify_AppFeature/js/insert-form">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="listingProvider" xsi:type="string">ns = xpify_app_features_listing, index = xpify_app_features_listing</item>
+                        <item name="modalProvider" xsi:type="string">${ $.parentName }</item>
+                    </item>
+                </argument>
+                <settings>
+                    <formSubmitType>ajax</formSubmitType>
+                    <renderUrl path="mui/index/render_handle">
+                        <param name="handle">xpify_app_feature_edit</param>
+                        <param name="buttons">1</param>
+                    </renderUrl>
+                    <loading>true</loading>
+                    <toolbarContainer>${ $.parentName }</toolbarContainer>
+                    <externalProvider>${ $.ns }.xpify_appfeature_form_data_source</externalProvider>
+                    <ns>xpify_appfeature_form</ns>
+                    <imports>
+                        <link name="onFeatureDelete">${ $.ns }.${ $.ns }:deleteFeatureAction</link>
+                    </imports>
+                </settings>
+            </insertForm>
+        </modal>
+        <insertListing name="xpify_app_features_listing">
+            <settings>
+                <dataLinks>
+                    <exports>false</exports>
+                    <imports>true</imports>
+                </dataLinks>
+                <externalProvider>xpify_app_features_listing.xpify_app_features_listing_data_source</externalProvider>
+                <selectionsProvider>xpify_app_features_listing.xpify_app_features_listing.xpify_app_features_listing_columns.ids</selectionsProvider>
+                <autoRender>true</autoRender>
+                <dataScope>xpify_app_features_listing</dataScope>
+                <ns>xpify_app_features_listing</ns>
+                <imports>
+                    <link name="onAction">ns = ${ $.ns }, index = actions:action</link>
+                    <link name="onMassAction">ns = ${ $.ns }, index = listing_massaction:massaction</link>
+                </imports>
+            </settings>
+        </insertListing>
+    </fieldset>
+</form>

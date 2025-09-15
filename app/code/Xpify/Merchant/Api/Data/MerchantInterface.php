@@ -30,6 +30,7 @@ interface MerchantInterface
     const COLLABORATOR = 'collaborator';
     const EMAIL = 'email';
     const NAME = 'name';
+    const COHORT_VERSION = 'cohort_version';
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
 
@@ -374,4 +375,19 @@ interface MerchantInterface
     public function getXAccessToken(): ?string;
 
     public function setXAccessToken(?string $xAccessToken): self;
+
+    /**
+     * Get cohort version
+     *
+     * @return string|null
+     */
+    public function getCohortVersion(): ?string;
+
+    /**
+     * Set cohort version
+     *
+     * @param string|null $cohortVersion
+     * @return self
+     */
+    public function setCohortVersion(?string $cohortVersion): self;
 }

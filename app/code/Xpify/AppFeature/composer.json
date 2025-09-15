@@ -1,0 +1,23 @@
+{
+  "name": "xpify/module-appfeature",
+  "version": "1.0.0",
+  "description": "Feature Gating Module for Shopify Apps",
+  "type": "magento2-module",
+  "require": {
+    "php": "~7.4.0||~8.1.0",
+    "magento/framework": "*",
+    "xpify/module-core": "1.0.*",
+    "xpify/module-merchant": "1.0.*"
+  },
+  "license": [
+    "Proprietary"
+  ],
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Xpify\\AppFeature\\": ""
+    }
+  }
+}

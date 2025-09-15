@@ -1,0 +1,23 @@
+type Query {
+    appFeatures: AppFeaturesOutput 
+        @resolver(class: "Xpify\\AppFeatureGraphQl\\Model\\Resolver\\AppFeaturesQuery")
+        @doc(description: "Get feature flags for current merchant")
+}
+
+type AppFeaturesOutput @doc(description: "App Features Output") {
+    features: [AppFeature] @doc(description: "List of features with status")
+    features_map: AppFeaturesMap @doc(description: "Map of feature keys to boolean status")
+}
+
+type AppFeature @doc(description: "Individual Feature Definition") {
+    feature_key: String @doc(description: "Feature key")
+    description: String @doc(description: "Feature description")
+    enabled: Boolean @doc(description: "Whether feature is enabled for current merchant")
+    min_version: String @doc(description: "Minimum version required")
+    merchant_cohort_version: String @doc(description: "Merchant's cohort version")
+}
+
+type AppFeaturesMap @doc(description: "Map of features to boolean status") {
+    # Dynamic fields will be added based on available features
+    # Example: advanced_analytics: Boolean
+}
