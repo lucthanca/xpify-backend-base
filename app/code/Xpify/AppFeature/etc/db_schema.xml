@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
-    
+
     <!-- Features table -->
     <table name="$xpify_features" resource="default" engine="innodb" comment="App Features">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
@@ -39,11 +39,11 @@
             <column name="merchant_id"/>
             <column name="feature_key"/>
         </constraint>
-        <constraint xsi:type="foreign" referenceId="$XPIFY_MERCHANT_FEATURES_MERCHANT_ID_$XPIFY_MERCHANTS_ENTITY_ID" 
-                    table="$xpify_merchant_features" column="merchant_id" 
+        <constraint xsi:type="foreign" referenceId="$XPIFY_MERCHANT_FEATURES_MERCHANT_ID_$XPIFY_MERCHANTS_ENTITY_ID"
+                    table="$xpify_merchant_features" column="merchant_id"
                     referenceTable="$xpify_merchants" referenceColumn="entity_id" onDelete="CASCADE"/>
-        <constraint xsi:type="foreign" referenceId="$XPIFY_MERCHANT_FEATURES_FEATURE_KEY_$XPIFY_FEATURES_FEATURE_KEY" 
-                    table="$xpify_merchant_features" column="feature_key" 
+        <constraint xsi:type="foreign" referenceId="$XPIFY_MERCHANT_FEATURES_FEATURE_KEY_$XPIFY_FEATURES_FEATURE_KEY"
+                    table="$xpify_merchant_features" column="feature_key"
                     referenceTable="$xpify_features" referenceColumn="feature_key" onDelete="CASCADE"/>
         <index referenceId="$XPIFY_MERCHANT_FEATURES_MERCHANT_ID" indexType="btree">
             <column name="merchant_id"/>
@@ -51,20 +51,5 @@
         <index referenceId="$XPIFY_MERCHANT_FEATURES_FEATURE_KEY" indexType="btree">
             <column name="feature_key"/>
         </index>
-    </table>
-
-    <!-- App Metadata table -->
-    <table name="$xpify_app_metadata" resource="default" engine="innodb" comment="App Metadata Storage">
-        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
-        <column xsi:type="varchar" name="metadata_key" nullable="false" length="64" comment="Metadata Key"/>
-        <column xsi:type="json" name="metadata_value" nullable="true" comment="JSON Metadata Value"/>
-        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
-        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="entity_id"/>
-        </constraint>
-        <constraint xsi:type="unique" referenceId="$XPIFY_APP_METADATA_KEY">
-            <column name="metadata_key"/>
-        </constraint>
     </table>
 </schema>
