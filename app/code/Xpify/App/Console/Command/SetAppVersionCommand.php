@@ -11,6 +11,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Xpify\App\Api\AppRepositoryInterface;
 use Xpify\AppFeature\Service\FeatureManager;
 use Xpify\App\Api\Data\AppMetadataInterface as IAppMetadata;
+use Xpify\App\Model\ResourceModel\AppMetadata as AppMetadataResource;
 
 class SetAppVersionCommand extends Command
 {
@@ -19,17 +20,21 @@ class SetAppVersionCommand extends Command
 
     private FeatureManager $featureManager;
     private AppRepositoryInterface $appRepository;
+    private AppMetadataResource $resource;
 
     /**
      * @param AppRepositoryInterface $appRepository
+     * @param AppMetadataResource $resource
      * @param string|null $name
      */
     public function __construct(
         AppRepositoryInterface $appRepository,
+        AppMetadataResource $resource,
         string $name = null
     ) {
         parent::__construct($name);
         $this->appRepository = $appRepository;
+        $this->resource = $resource;
     }
 
     /**
@@ -77,15 +82,23 @@ class SetAppVersionCommand extends Command
             }
             /** @var IAppMetadata $metadata */
             $metadata = $appMetadata->getData('app_version') ?? null;
+//            vdd($appMetadata, ['_eventManager', '_appState', '_cacheManager', '_logger', '_actionValidator']);
             if (!$metadata) {
                 $metadata = \Magento\Framework\App\ObjectManager::getInstance()->create(IAppMetadata::class);
                 $metadata->setMetadataKey('app_version');
-                $metadata->setId($appId);
+                $metadata->setAppId((int) $app->getId());
             }
             $currentVersion = $metadata?->getMetadataValue()['current'] ?? 'N/A';
             $output->writeln("<info>Current app version: {$currentVersion}</info>");
 
-            $metadata->setMetadataValue(['current' => $newVersion])->save();
+            $metadata->setMetadataValue(['current' => $newVersion]);
+            try {
+            vdd($metadata, ['_eventManager', '_appState', '_cacheManager', '_logger', '_actionValidator']);
+                $this->resource->save($metadata);
+            } catch (\Exception $e) {
+                $output->writeln('<error>Failed to save new version: ' . $e->getMessage() . '</error>');
+                return Cli::RETURN_FAILURE;
+            }
             $output->writeln("<info>App version updated to: {$newVersion}</info>");
             return Cli::RETURN_SUCCESS;
         } catch (\Throwable $e) {

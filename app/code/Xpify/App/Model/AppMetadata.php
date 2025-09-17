@@ -86,4 +86,14 @@ class AppMetadata extends AbstractModel implements IAppMetadata
     {
         return $this->setData(self::UPDATED_AT, $updatedAt);
     }
+
+    public function getAppId(): int
+    {
+        return (int)$this->getData(self::APP_ID);
+    }
+
+    public function setAppId(int $id): self
+    {
+        return $this->setData(self::APP_ID, $id);
+    }
 }

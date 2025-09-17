@@ -27,7 +27,7 @@ class App extends AbstractModel implements IApp
         if (!$this->metadata) {
             $this->metadata = new \Magento\Framework\DataObject();
             $collection = \Magento\Framework\App\ObjectManager::getInstance()->create(\Xpify\App\Model\ResourceModel\AppMetadata\Collection::class);
-            $collection->addFieldToFilter(IAppMetadata::ID, $this->getId());
+            $collection->addFieldToFilter(IAppMetadata::APP_ID, $this->getId());
             /** @var IAppMetadata $item */
             foreach ($collection->getItems() as $item) {
                 $this->metadata->setData($item->getMetadataKey(), $item);

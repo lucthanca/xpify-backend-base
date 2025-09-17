@@ -27,6 +27,21 @@ interface AppMetadataInterface
     public function setId($id);
 
     /**
+     * Set app ID
+     *
+     * @param int $id
+     * @return mixed
+     */
+    public function setAppId(int $id): self;
+
+    /**
+     * Get app ID
+     *
+     * @return int
+     */
+    public function getAppId(): int;
+
+    /**
      * Get metadata key
      *
      * @return string
