@@ -5,34 +5,27 @@ namespace Xpify\Merchant\Observer;
 
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
-use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Xpify\App\Api\Data\AppInterface;
-use Xpify\AppFeature\Service\FeatureManager;
+use Xpify\App\Service\AppVersionManager;
 use Xpify\Core\Model\Logger;
-use Xpify\Merchant\Api\Data\MerchantInterface;
-use Xpify\Merchant\Model\MerchantFactory;
-use Xpify\Merchant\Model\ResourceModel\Merchant as MerchantResource;
+use Xpify\Merchant\Api\MerchantRepositoryInterface as IMerchantRepository;
 
 class AssignCohortVersion implements ObserverInterface
 {
-    private MerchantFactory $merchantFactory;
-    private MerchantResource $merchantResource;
-    private FeatureManager $featureManager;
+    private AppVersionManager $appVersionManager;
+    private IMerchantRepository $merchantRepository;
 
     /**
-     * @param MerchantFactory $merchantFactory
-     * @param MerchantResource $merchantResource
-     * @param FeatureManager $featureManager
+     * @param AppVersionManager $appVersionManager
+     * @param IMerchantRepository $merchantRepository
      */
     public function __construct(
-        MerchantFactory $merchantFactory,
-        MerchantResource $merchantResource,
-        FeatureManager $featureManager
+        AppVersionManager $appVersionManager,
+        IMerchantRepository $merchantRepository
     ) {
-        $this->merchantFactory = $merchantFactory;
-        $this->merchantResource = $merchantResource;
-        $this->featureManager = $featureManager;
+        $this->appVersionManager = $appVersionManager;
+        $this->merchantRepository = $merchantRepository;
     }
 
     /**
@@ -49,8 +42,8 @@ class AssignCohortVersion implements ObserverInterface
             $shopDomain = $observer->getData('shop');
             $sessionId = $observer->getData('sess_id');
 
-            if (!$app || !$shopDomain) {
-                Logger::getLogger('cohort_version.log')->warning(
+            if (!$shopDomain || !$app?->getId()) {
+                Logger::getLogger('merchant.cohort_version.log')->debug(
                     'Missing required data in app_installed_successfully event',
                     ['app' => $app?->getId(), 'shop' => $shopDomain]
                 );
@@ -58,27 +51,11 @@ class AssignCohortVersion implements ObserverInterface
             }
 
             // Load merchant by app_id and shop_domain
-            /** @var MerchantInterface $merchant */
-            $merchant = $this->merchantFactory->create();
-            $this->merchantResource->load($merchant, $shopDomain, 'shop_domain');
-
-            if (!$merchant->getId()) {
-                // Try to load by app_id if shop_domain doesn't work
-                $merchant = $this->merchantFactory->create();
-                $this->merchantResource->load($merchant, $app->getId(), 'app_id');
-            }
-
-            if (!$merchant->getId()) {
-                Logger::getLogger('cohort_version.log')->warning(
-                    'Could not find merchant for cohort version assignment',
-                    ['app_id' => $app->getId(), 'shop' => $shopDomain, 'session_id' => $sessionId]
-                );
-                return;
-            }
+            $merchant = $this->merchantRepository->getBySessId($sessionId, (int)$app->getId());
 
             // Check if cohort version is already assigned
             if ($merchant->getCohortVersion()) {
-                Logger::getLogger('cohort_version.log')->info(
+                Logger::getLogger('merchant.cohort_version.log')->info(
                     'Merchant already has cohort version, skipping assignment',
                     [
                         'merchant_id' => $merchant->getId(),
@@ -90,28 +67,17 @@ class AssignCohortVersion implements ObserverInterface
             }
 
             // Get current app version and assign as cohort version
-            $currentAppVersion = $this->featureManager->getCurrentAppVersion();
+            $currentAppVersion = $this->appVersionManager->getCurrentAppVersion();
             $merchant->setCohortVersion($currentAppVersion);
-            
-            $this->merchantResource->save($merchant);
 
-            Logger::getLogger('cohort_version.log')->info(
-                'Successfully assigned cohort version to merchant',
-                [
-                    'merchant_id' => $merchant->getId(),
-                    'cohort_version' => $currentAppVersion,
-                    'shop' => $shopDomain,
-                    'app_id' => $app->getId()
-                ]
-            );
-
-        } catch (AlreadyExistsException $e) {
-            Logger::getLogger('cohort_version.log')->error(
+            $this->merchantRepository->save($merchant);
+        } catch (NoSuchEntityException $e) {
+            Logger::getLogger('merchant.cohort_version.log')->debug(
                 'Failed to save merchant cohort version - already exists',
                 ['exception' => $e->getMessage()]
             );
         } catch (\Exception $e) {
-            Logger::getLogger('cohort_version.log')->error(
+            Logger::getLogger('merchant.cohort_version.log')->debug(
                 'Error assigning cohort version to merchant',
                 ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]
             );

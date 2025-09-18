@@ -58,6 +58,9 @@ class MerchantDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
             unset($i[$f]);
         }
         $i['online_access_info'] = $onlineAccessInfo;
+        if (empty($i['cohort_version'])) {
+            $i['cohort_version'] = '1.0.0';
+        }
     }
 
     public function addFilter(Filter $filter)

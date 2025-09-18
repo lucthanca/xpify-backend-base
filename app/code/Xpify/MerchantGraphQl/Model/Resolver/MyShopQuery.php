@@ -77,13 +77,14 @@ QUERY;
                             'shop_owner' => $unserializedShop['shop_owner'],
                             'name' => $unserializedShop['name'],
                             'created_at' => $createdAtDate->getTimestamp(),
+                            'cohort_version' => $merchant->getCohortVersion(),
                             'myshopify_domain' => $shopifyDomain,
                         ];
                     }
                 }
             }
         } catch (\Throwable $e) {
-            Logger::getLogger('fetch_my_shop_info_error.log')->debug(
+            Logger::getLogger('merchant.shop_info.log')->debug(
                 "[{$merchant->getShop()}] Error while loading shop info from database: " . $e->getMessage(),
                 ['exception' => $e]
             );
@@ -98,14 +99,14 @@ QUERY;
                 throw new GraphQlNoSuchEntityException($friendlyErrMsg);
             }
             if ($response->getDecodedBody()['errors'] ?? false) {
-                Logger::getLogger('fetch_my_shop_info_error.log')->debug(
+                Logger::getLogger('merchant.shop_info.log')->debug(
                     "[{$merchant->getShop()}] GraphQL error while fetching shop info: " . json_encode($response->getDecodedBody()['errors'])
                 );
                 throw new GraphQlNoSuchEntityException($friendlyErrMsg);
             }
             $result = $response->getDecodedBody()['data']['shop'] ?? null;
             if (!$result) {
-                Logger::getLogger('fetch_my_shop_info_error.log')->debug(
+                Logger::getLogger('merchant.shop_info.log')->debug(
                     "[{$merchant->getShop()}] No shop data found in response: " . json_encode($response->getDecodedBody())
                 );
                 throw new GraphQlNoSuchEntityException($friendlyErrMsg);
@@ -115,11 +116,12 @@ QUERY;
                 'x_access_token' => $merchant->getXAccessToken(),
                 'domain' => $result['primaryDomain']['host'] ?? null,
                 'created_at' => $createdAtDate->getTimestamp(),
+                'cohort_version' => $merchant->getCohortVersion(),
             ]);
             unset($result['primaryDomain']);
             return $result;
         } catch (\Throwable $e) {
-            Logger::getLogger('fetch_my_shop_info_error.log')->debug(
+            Logger::getLogger('merchant.shop_info.log')->debug(
                 "[{$merchant->getShop()}] Error while fetching shop info: " . $e->getMessage(),
                 ['exception' => $e]
             );

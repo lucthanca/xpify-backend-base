@@ -19,6 +19,16 @@ interface MerchantRepositoryInterface
     public function getById(int $id): IMerchant;
 
     /**
+     * Retrieve merchant by shopify session id and app id
+     *
+     * @param string $sessId
+     * @param int $appId
+     * @return IMerchant
+     * @throws NoSuchEntityException
+     */
+    public function getBySessId(string $sessId, int $appId): IMerchant;
+
+    /**
      * Save merchant
      *
      * @param IMerchant $merchant
