@@ -105,10 +105,10 @@
                 <filter>text</filter>
             </settings>
         </column>
-        <column name="storefront_access_token" sortOrder="300">
+        <column name="cohort_version" sortOrder="300">
             <settings>
                 <dataType>text</dataType>
-                <label translate="true">Storefront Access Token</label>
+                <label translate="true">Cohort Version</label>
                 <filter>text</filter>
             </settings>
         </column>

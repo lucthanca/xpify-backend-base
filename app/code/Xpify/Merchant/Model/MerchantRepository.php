@@ -92,6 +92,30 @@ class MerchantRepository implements \Xpify\Merchant\Api\MerchantRepositoryInterf
     /**
      * @inheritDoc
      */
+    public function getBySessId(string $sessId, int $appId): IMerchant
+    {
+        try {
+            $collection = $this->collectionFactory->create();
+            $collection->addFieldToFilter(IMerchant::SESSION_ID, $sessId);
+            $collection->addFieldToFilter(IMerchant::APP_ID, $appId);
+            $collection->setPageSize(1);
+            /** @var IMerchant $merchant */
+            $merchant = $collection->getFirstItem();
+            if (!$merchant->getId()) {
+                throw new NoSuchEntityException(__('Merchant with session id "%1" does not exist.', $sessId));
+            }
+            return $merchant;
+        } catch (NoSuchEntityException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            $this->logger->error($e->getMessage());
+            throw new NoSuchEntityException(__('Merchant with session id "%1" does not exist.', $sessId));
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function save(IMerchant $merchant): IMerchant
     {
         try {
