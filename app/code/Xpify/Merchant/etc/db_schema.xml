@@ -23,6 +23,7 @@
         <column xsi:type="varchar" name="email" nullable="true" length="255" comment="Merchant Email"/>
         <column xsi:type="varchar" name="name" nullable="true" length="255" comment="Shop name"/>
         <column xsi:type="int" name="app_id" unsigned="true" nullable="false" identity="false" comment="Installed App ID" />
+        <column xsi:type="varchar" name="cohort_version" nullable="true" length="32" comment="App Version When Merchant First Installed"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="true" default="CURRENT_TIMESTAMP" comment="First interaction Time"/>
         <column xsi:type="timestamp" name="updated_at" on_update="false" nullable="true" comment="Update Time"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">

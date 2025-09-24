@@ -27,4 +27,24 @@
             <column name="handle"/>
         </constraint>
     </table>
+
+    <!-- App Metadata table -->
+    <table name="$xpify_app_metadata" resource="default" engine="innodb" comment="App Metadata Storage">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="app_id" unsigned="true" nullable="false" comment="App ID"/>
+        <column xsi:type="varchar" name="metadata_key" nullable="false" length="64" comment="Metadata Key"/>
+        <column xsi:type="json" name="metadata_value" nullable="true" comment="JSON Metadata Value"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="$XPIFY_APP_METADATA_APP_ID_$XPIFY_APPS_ENTITY_ID"
+                    table="$xpify_app_metadata" column="app_id"
+                    referenceTable="$xpify_apps" referenceColumn="entity_id" onDelete="CASCADE" />
+        <constraint xsi:type="unique" referenceId="$XPIFY_APP_METADATA_KEY_APP_ID">
+            <column name="metadata_key"/>
+            <column name="app_id"/>
+        </constraint>
+    </table>
 </schema>

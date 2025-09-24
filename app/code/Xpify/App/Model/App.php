@@ -5,13 +5,36 @@ namespace Xpify\App\Model;
 
 use Magento\Framework\Model\AbstractModel;
 use Xpify\App\Api\Data\AppInterface as IApp;
+use Xpify\App\Api\Data\AppMetadataInterface as IAppMetadata;
 use Magento\Framework\Oauth\Helper\Oauth as OauthHelper;
 
 class App extends AbstractModel implements IApp
 {
+    private ?\Magento\Framework\DataObject $metadata = null;
+
     protected function _construct()
     {
         $this->_init(\Xpify\App\Model\ResourceModel\App::class);
+    }
+
+    /**
+     * Get associated metadata
+     *
+     * @return \Magento\Framework\DataObject|null
+     */
+    public function getMetaData(): ?\Magento\Framework\DataObject
+    {
+        if (!$this->metadata) {
+            $this->metadata = new \Magento\Framework\DataObject();
+            $collection = \Magento\Framework\App\ObjectManager::getInstance()->create(\Xpify\App\Model\ResourceModel\AppMetadata\Collection::class);
+            $collection->addFieldToFilter(IAppMetadata::APP_ID, $this->getId());
+            /** @var IAppMetadata $item */
+            foreach ($collection->getItems() as $item) {
+                $this->metadata->setData($item->getMetadataKey(), $item);
+            }
+        }
+
+        return $this->metadata;
     }
 
     public function getId()

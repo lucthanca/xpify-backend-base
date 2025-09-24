@@ -5,10 +5,22 @@ enum LoadAppInputField @app(id: "xpify.core") {
 
 type Query {
     app(field: LoadAppInputField!, value: String!): App @doc(description: "Retrieve a single `App` object from the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppQuery") @app(id: "xpify.core")
+    configs: AppConfig @doc(description: "Retrieve the `AppConfig` object.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppConfigQuery")
 }
 type Mutation {
     saveApp(input: SaveAppInput!): App @doc(description: "Create order update a `App` object to the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppSaveMutation") @app(id: "xpify.core")
-#    deleteApp(id: ID!): Boolean @doc(description: "Delete a `App` object from the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\DestroyAppMutation")
+}
+enum AppEnvEnum @app(id: "xpify.core") {
+    PROD
+    DEV
+}
+type ConfigItem @app(id: "xpify.core") {
+    key: String @doc(description: "The config key.")
+    value: String @doc(description: "The config value.")
+}
+type AppConfig @app(id: "xpify.core") {
+    id: ID! @doc(description: "The unique ID for a `AppConfig` object.")
+    env: AppEnvEnum @doc(description: "The current environment.")
 }
 type App @app(id: "xpify.core") {
     id: ID! @doc(description: "The unique ID for a `App` object.")
