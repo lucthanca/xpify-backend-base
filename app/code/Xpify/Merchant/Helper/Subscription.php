@@ -4,9 +4,11 @@ declare(strict_types=1);
 namespace Xpify\Merchant\Helper;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Xpify\Core\Model\Logger;
 use Xpify\Merchant\Api\Data\MerchantSubscriptionInterface as ISubscription;
 use Xpify\Merchant\Api\MerchantSubscriptionRepositoryInterface as ISubscriptionRepository;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
+use Xpify\Merchant\Exception\AlreadySubscribedException;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 
 final class Subscription
@@ -20,6 +22,42 @@ final class Subscription
      */
     private static array $subscriptionList = [];
     private static ?ISubscriptionRepository $subscriptionRepository = null;
+
+    /**
+     * Assign free subscription to the given merchant
+     *
+     * @param IMerchant $merchant
+     * @return void
+     * @throws AlreadySubscribedException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws \RuntimeException
+     */
+    public static function assignFreeSubscription(IMerchant $merchant): void
+    {
+        $freePlan = \Magento\Framework\App\ObjectManager::getInstance()->get(\Xpify\PricingPlan\Service\PricingManager::class)->getFreePricingPlan((int) $merchant->getAppId());
+        // Get current active plan
+        $activeSubscription = self::getSubscription($merchant);
+        if ($activeSubscription?->getId()) {
+            throw new AlreadySubscribedException(__("Merchant already has an active subscription"));
+        }
+
+        try {
+            $subscription = self::newSubscription();
+            $subscription->setMerchantId($merchant->getId());
+            $subscription->setAppId($merchant->getAppId());
+            $subscription->setPlanId($freePlan->getId());
+            $subscription->setName($freePlan->getName());
+            $subscription->setPrice(0);
+            $subscription->setStatus(ISubscription::STATUS_ACTIVE);
+            $subscription->setInterval("ONE_TIME");
+            $subscription->save();
+        } catch (\Throwable $e) {
+            Logger::getLogger('merchant.subscription.log')->debug(
+                $e->getMessage() . "\n" . $e->getTraceAsString()
+            );
+            throw new \RuntimeException("Cannot assign free subscription to merchant: " . $e->getMessage());
+        }
+    }
 
     /**
      * Check if merchant has subscription

@@ -31,7 +31,7 @@ class AppSubscriptionUpdate implements Handler
      */
     public function handle(string $topic, string $shop, array $body): void
     {
-        $logger = Logger::getLogger('app_subscription_update.log');
+        $logger = Logger::getLogger('webhooks.app_subscription_update.log');
         $app_subscription = $body['app_subscription'];
         $admin_graphql_api_id = $app_subscription['admin_graphql_api_id'] ?? null;
         if (!$admin_graphql_api_id) {
@@ -44,7 +44,7 @@ class AppSubscriptionUpdate implements Handler
             $subscription = $this->subscriptionFactory->create();
             $this->subscriptionResource->loadBySubscription($subscription, $subscription_id);
         } catch (NoSuchEntityException $e) {
-            Logger::getLogger('webhooks.app_subscription_update.log')->debug($e->getMessage());
+            $logger->debug($e->getMessage());
             return;
         }
 
@@ -55,7 +55,7 @@ class AppSubscriptionUpdate implements Handler
                 $this->subscriptionResource->save($subscription);
             }
         } catch (\Throwable $e) {
-            Logger::getLogger('webhooks.app_subscription_update.log')->debug("{$e->getMessage()} | {$e->getTraceAsString()}");
+            $logger->debug("{$e->getMessage()} | {$e->getTraceAsString()}");
         }
     }
 }

@@ -29,6 +29,27 @@ type Shop @doc(description: "Follow guide Shopify") {
     x_access_token: String # @doc(description: "Token for authentication, currently is used for WSS connection")
     cohort_version: String
     created_at: Int
+    activePlan: ActivePricingPlan @doc(description: "The currently active pricing plan for the shop") @resolver(class: "Xpify\\MerchantGraphQl\\Model\\Resolver\\ActivePlanResolver")
+}
+
+enum PricingPlanStatus {
+    PENDING @doc(description: "The app subscription is pending approval by the merchant.")
+    ACCEPTED @deprecated(reason: "Removed in version 2021-01. As of API version 2021-01, when a merchant accepts a charge, the charge immediately transitions from PENDING to ACTIVE.") @doc(description: "The app subscription has been approved by the merchant and is ready to be activated by the app.")
+    ACTIVE @doc(description: "The app subscription has been approved by the merchant. Active app subscriptions are billed to the shop. After payment, partners receive payouts.")
+    DECLINED @doc(description: "The app subscription was declined by the merchant. This is a terminal state.")
+    EXPIRED @doc(description: "The app subscription wasn't approved by the merchant within two days of being created. This is a terminal state.")
+    FROZEN @doc(description: "The app subscription is on hold due to non-payment. The subscription re-activates after payments resume.")
+    CANCELLED @doc(description: "The app subscription was cancelled by the app. This could be caused by the app being uninstalled, a new app subscription being activated, or a direct cancellation by the app. This is a terminal state.")
+    DEACTIVATED @doc(description: "The plan is deactivated")
+}
+type ActivePricingPlan {
+    id: ID!
+    code: String!
+    name: String!
+    price: Float!
+    interval: PricingPlanInterval!
+    created_at: String!
+    status:PricingPlanStatus
 }
 
 type SubscribePricingPlanOutput {

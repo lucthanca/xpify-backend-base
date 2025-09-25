@@ -2,5 +2,6 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
     <event name="app_installed_successfully">
         <observer name="assign_cohort_version" instance="Xpify\Merchant\Observer\AssignCohortVersion" />
+        <observer name="merchant.onboard.free_plan" instance="Xpify\Merchant\Observer\OnboardFreePlan" />
     </event>
 </config>
