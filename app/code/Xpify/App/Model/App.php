@@ -10,6 +10,8 @@ use Magento\Framework\Oauth\Helper\Oauth as OauthHelper;
 
 class App extends AbstractModel implements IApp
 {
+    const CACHE_TAG = 'APP://';
+
     private ?\Magento\Framework\DataObject $metadata = null;
 
     protected function _construct()
@@ -224,5 +226,10 @@ class App extends AbstractModel implements IApp
             $oauthHelper = \Magento\Framework\App\ObjectManager::getInstance()->get(OauthHelper::class);
             $this->setToken($oauthHelper->generateToken());
         }
+    }
+
+    public function getIdentities(): array
+    {
+        return [self::CACHE_TAG . $this->getId()];
     }
 }
