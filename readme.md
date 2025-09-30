@@ -59,3 +59,4 @@ Setup môi trường đáp ứng các yêu cầu sau:
    Magento_Search \
    Magento_CatalogSearch
     ```
+5. Vào app/etc/env.php sửa lại phần db -> initStatements => "SET NAMES utf8mb4;"
