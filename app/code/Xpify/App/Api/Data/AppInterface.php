@@ -163,4 +163,11 @@ interface AppInterface
      * @return AppInterface Returns the current instance of the class to allow method chaining
      */
     public function setHandle(string $handle): AppInterface;
+
+    /**
+     * Retrieve unique identifiers for each object in system
+     *
+     * @return array
+     */
+    public function getIdentities(): array;
 }

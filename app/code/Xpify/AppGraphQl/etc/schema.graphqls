@@ -5,7 +5,7 @@ enum LoadAppInputField @app(id: "xpify.core") {
 
 type Query {
     app(field: LoadAppInputField!, value: String!): App @doc(description: "Retrieve a single `App` object from the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppQuery") @app(id: "xpify.core")
-    configs: AppConfig @doc(description: "Retrieve the `AppConfig` object.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppConfigQuery")
+    configs: AppConfig @doc(description: "Retrieve the `AppConfig` object.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppConfigQuery") @cache(cacheIdentity: "Xpify\\AppGraphQl\\Model\\Resolver\\AppConfigIdentity")
 }
 type Mutation {
     saveApp(input: SaveAppInput!): App @doc(description: "Create order update a `App` object to the database.") @resolver(class: "Xpify\\AppGraphQl\\Model\\Resolver\\AppSaveMutation") @app(id: "xpify.core")
