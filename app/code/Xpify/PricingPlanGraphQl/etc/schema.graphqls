@@ -6,8 +6,8 @@ type Query {
 
 type Interval {
     interval: String! @doc(description: "Interval type. One of: ONE_TIME, EVERY_30_DAYS, ANNUAL")
-    amount: Float!
-    compare_at_price: Float @doc(description: "Price before discount")
+    amount: Float! @doc(description: "Price for the interval. Before any discounts are applied")
+    compare_at_price: Float @doc(description: "Price before discount.")
 }
 
 enum BadgeTone {
