@@ -59,7 +59,7 @@ class MerchantDataProvider extends \Magento\Ui\DataProvider\AbstractDataProvider
         }
         $i['online_access_info'] = $onlineAccessInfo;
         if (empty($i['cohort_version'])) {
-            $i['cohort_version'] = '1.0.0';
+            $i['cohort_version'] = IMerchant::COHORT_VERSION_DEFAULT;
         }
     }
 

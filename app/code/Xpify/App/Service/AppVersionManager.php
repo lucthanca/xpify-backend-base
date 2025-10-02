@@ -6,6 +6,7 @@ namespace Xpify\App\Service;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Xpify\App\Api\Data\AppMetadataInterface as IAppMetadata;
 use Xpify\Core\Model\Logger;
+use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 
 class AppVersionManager
 {
@@ -51,9 +52,9 @@ class AppVersionManager
         try {
             $metadata = $this->getVersionAppMetadata();
             if (!$metadata) {
-                return '1.0.0';
+                return IMerchant::COHORT_VERSION_DEFAULT;
             }
-            return $metadata->getMetadataValue()['current'] ?? '1.0.0';
+            return $metadata->getMetadataValue()['current'] ?? IMerchant::COHORT_VERSION_DEFAULT;
         } catch (NoSuchEntityException $e) {
             throw $e;
         } catch (\Throwable $e) {

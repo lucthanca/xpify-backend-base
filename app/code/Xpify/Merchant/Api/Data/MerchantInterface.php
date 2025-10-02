@@ -34,6 +34,8 @@ interface MerchantInterface
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
 
+    const COHORT_VERSION_DEFAULT = '1.0.0';
+
     /**
      * Get shop email
      *

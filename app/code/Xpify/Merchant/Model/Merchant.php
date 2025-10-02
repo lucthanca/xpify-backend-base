@@ -403,9 +403,9 @@ class Merchant extends AbstractModel implements IMerchant
     /**
      * @inheritDoc
      */
-    public function getCohortVersion(): ?string
+    public function getCohortVersion(): string
     {
-        return $this->getData(IMerchant::COHORT_VERSION);
+        return $this->getData(IMerchant::COHORT_VERSION) ?? self::COHORT_VERSION_DEFAULT;
     }
 
     /**

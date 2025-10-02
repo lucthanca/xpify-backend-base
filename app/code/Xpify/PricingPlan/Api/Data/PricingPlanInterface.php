@@ -187,7 +187,7 @@ interface PricingPlanInterface
     /**
      * Get interval price data
      *
-     * @return array
+     * @return array<int, array{ interval: string, amount: float, compare_at_price: float|null, final_amount?: float|null }>
      */
     public function getDataPrices(): array;
 
@@ -208,7 +208,7 @@ interface PricingPlanInterface
 
     /**
      * Set interval price data
-     * @param array $prices
+     * @param array<int, array{ interval: string, amount: float, compare_at_price: float|null, final_amount?: float|null }> $prices
      * @return $this
      */
     public function setDataPrice(array $prices): self;

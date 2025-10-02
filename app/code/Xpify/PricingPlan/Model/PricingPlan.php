@@ -135,7 +135,7 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
      * [
      *  [ interval: "ONE_TIME|EVERY_30_DAYS|ANNUAL", amount: 0.00 ]
      * ]
-     * @return array
+     * @return array<int, array{ interval: string, amount: float, compare_at_price: float|null }>
      */
     public function getDataPrices(): array
     {
