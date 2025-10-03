@@ -15,6 +15,9 @@ use Xpify\PricingPlan\Api\Data\PricingPlanInterface;
 
 class PricingPlan extends AbstractModel implements PricingPlanInterface
 {
+    /**
+     * @var array<int, array{ interval: string, amount: float, compare_at_price: float|null }>
+     */
     private array $decodedPrices = [];
     private ?IApp $app = null;
 
@@ -147,6 +150,7 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
                     'interval' => $price['interval'],
                     'amount' => (float) $price['amount'],
                     'compare_at_price' => isset($price['compare_at_price']) ? (float) $price['compare_at_price'] : null,
+                    'final_amount' => isset($price['final_amount']) ? (float) $price['final_amount'] : null,
                 ], $this->decodedPrices);
             } catch (\Exception $e) {
                 $this->decodedPrices = [];
@@ -172,7 +176,7 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
      */
     public function setDataPrice(array $prices) : PricingPlanInterface
     {
-        $this->decodedPrices = [];
+        $this->decodedPrices = $prices;
         return $this->setData(self::PRICES, json_encode($prices));
     }
 
