@@ -64,13 +64,13 @@ class Billing
         }
         $subscription = Subscription::newSubscription();
         $subscription->setMerchantId((int) $merchant->getId());
-        $subscription->setPlanId($plan->getId());
-        $subscription->setAppId($merchant->getAppId());
+        $subscription->setPlanId((int) $plan->getId());
+        $subscription->setAppId((int) $merchant->getAppId());
         $subscription->setCode($plan->getCode());
         $subscription->setDescription($plan->getDescription());
         $subscription->setName($plan->getName());
         $subscription->setPrice($plan->getIntervalAmount($interval));
-        $subscription->setTrialDays($plan->getFreeTrialDays());
+        $subscription->setTrialDays((int) $plan->getFreeTrialDays());
         $subscription->setInterval($interval);
         $config = [
             'chargeName' => $subscription->getName(),

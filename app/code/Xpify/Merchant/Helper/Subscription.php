@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Xpify\Merchant\Helper;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Xpify\Core\Exception\ShopifyQueryException;
 use Xpify\Core\Model\Logger;
 use Xpify\Merchant\Api\Data\MerchantSubscriptionInterface as ISubscription;
 use Xpify\Merchant\Api\MerchantSubscriptionRepositoryInterface as ISubscriptionRepository;
@@ -13,6 +14,8 @@ use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 
 final class Subscription
 {
+    use GraphqlQueryTrait;
+
     private static array $subscriptions = [];
 
     /**
@@ -59,6 +62,44 @@ final class Subscription
         }
     }
 
+    public static function hasActiveOrFrozenSubscription(IMerchant $merchant): bool
+    {
+        try {
+            $remoteSub = self::getRemoteActiveSubscription($merchant);
+            if (!$remoteSub) {
+                return false;
+            }
+
+            $returnUrl = $remoteSub['returnUrl'];
+
+            // extract plan id from return url by getting the _pid
+            $url = parse_url($returnUrl);
+
+            $localSub = self::getSubscription($merchant);
+        } catch (ShopifyQueryException $e) {
+            Logger::getLogger('merchant.subscription.log')->debug($e->__toString());
+            return false;
+        }
+    }
+
+    /**
+     * Retrieve active subscription from Shopify
+     *
+     * @param IMerchant $merchant
+     * @return array{ id: string, name: string, status: string, createdAt: string, returnUrl: string, trialDays: string  }|null
+     * @throws ShopifyQueryException
+     */
+    protected static function getRemoteActiveSubscription(IMerchant $merchant): ?array
+    {
+        $responseBody = self::query($merchant, self::RECURRING_PURCHASES_QUERY);
+        $subscriptions = $responseBody["data"]["currentAppInstallation"]["activeSubscriptions"];
+        if (count($subscriptions) > 0) {
+            return $subscriptions[0];
+        }
+        return null;
+    }
+
+
     /**
      * Check if merchant has subscription
      *
@@ -85,7 +126,7 @@ final class Subscription
     }
 
     /**
-     * Get activated subscription of the given merchant
+     * Get activated or frozen subscription of the given merchant
      *
      * @param IMerchant $merchant
      * @return ISubscription|null
@@ -96,7 +137,10 @@ final class Subscription
             $criteriaBuilder = self::getSearchCriteriaBuilder();
             $criteriaBuilder->addFilter(ISubscription::MERCHANT_ID, $merchant->getId());
             $criteriaBuilder->addFilter(ISubscription::APP_ID, $merchant->getAppId());
-            $criteriaBuilder->addFilter(ISubscription::STATUS, ISubscription::STATUS_ACTIVE);
+            $criteriaBuilder->addFilter(ISubscription::STATUS, [
+                ISubscription::STATUS_ACTIVE,
+                ISubscription::STATUS_FROZEN,
+            ], 'in');
             $criteriaBuilder->setPageSize(1);
             $searchResults = self::getSubscriptionRepository()->getList($criteriaBuilder->create());
             if ($searchResults->getTotalCount() > 0) {
@@ -145,4 +189,12 @@ final class Subscription
     {
         return \Magento\Framework\App\ObjectManager::getInstance()->create(SearchCriteriaBuilder::class);
     }
+
+    private const RECURRING_PURCHASES_QUERY = <<<'QUERY'
+    query appSubscription {
+        currentAppInstallation {
+            activeSubscriptions { id name test currentPeriodEnd trialDays }
+        }
+    }
+    QUERY;
 }

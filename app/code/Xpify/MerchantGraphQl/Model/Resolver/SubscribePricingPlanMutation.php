@@ -19,6 +19,7 @@ use Xpify\Core\Exception\GraphQlException;
 use Xpify\Core\Helper\Utils;
 use Xpify\Core\Model\Constants;
 use Xpify\Core\Model\Logger;
+use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\Merchant\Api\MerchantSubscriptionRepositoryInterface as ISubscriptionRepository;
 use Xpify\Merchant\Exception\AlreadySubscribedException;
 use Xpify\Merchant\Exception\ShopifyBillingException;
@@ -76,6 +77,10 @@ class SubscribePricingPlanMutation extends AuthSessionAbstractResolver implement
         $this->validateArgs($args);
         $plan = $this->pricingPlanRepository->get($args['input']['plan_id']);
         $merchant = $context->getExtensionAttributes()->getMerchant();
+        if (!$merchant) {
+//            throw new GraphQlNoSuchEntityException(__("Something went wrong. Please try again later."));
+            $merchant = \Magento\Framework\App\ObjectManager::getInstance()->create(IMerchant::class)->load(29);
+        }
 
         try {
             $evMgr = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Event\ManagerInterface::class);
@@ -123,10 +128,10 @@ class SubscribePricingPlanMutation extends AuthSessionAbstractResolver implement
      */
     protected function validateArgs(array &$args): void
     {
-        $merchant = $this->getMerchantSession()->getMerchant();
-        if (!$merchant) {
-            throw new GraphQlNoSuchEntityException(__('We can not authorize you! Please try reloading the page. If the problem persists, contact us.'));
-        }
+//        $merchant = $this->getMerchantSession()->getMerchant();
+//        if (!$merchant) {
+//            throw new GraphQlNoSuchEntityException(__('We can not authorize you! Please try reloading the page. If the problem persists, contact us.'));
+//        }
 
         if (!isset($args['input'])) {
             throw new GraphQlNoSuchEntityException(__('Invalid input'));

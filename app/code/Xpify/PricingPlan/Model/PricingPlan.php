@@ -182,6 +182,8 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
 
     /**
      * @inheritDoc
+     *
+     * @return array{ interval: string, amount: string|float, compare_at_price: string|float|null, final_amount?: string|float|null }|null
      */
     public function getIntervalPrice(string $key): ?array
     {
@@ -195,7 +197,7 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
     }
 
     /**
-     * Retrive amount by interval
+     * Retrieve amount by interval
      *
      * @param string $interval
      * @return float
@@ -203,6 +205,17 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
     public function getIntervalAmount(string $interval): float
     {
         return (float) $this->getIntervalPrice($interval)['amount'] ?? 0.0;
+    }
+
+    /**
+     * Retrieve final amount by interval, if final_amount is not set, return amount
+     *
+     * @param string $interval
+     * @return float
+     */
+    public function getFinalIntervalAmount(string $interval): float
+    {
+        return $this->getIntervalPrice($interval)['final_amount'] ?? $this->getIntervalAmount($interval);
     }
 
     public function getSortOrder(): ?int
@@ -304,5 +317,20 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
             $badges = null;
         }
         return $this->setData(self::BADGES, $badges);
+    }
+
+    /**
+     * Retrieve applied discounts
+     *
+     * @return array<int, array{ name: string, applied_coupon: string, discount_type: 'PERCENTAGE'|'FIXED_AMOUNT' }>|null
+     */
+    public function getAppliedDiscounts(): ?array
+    {
+        return $this->getData('applied_discounts');
+    }
+
+    public function setAppliedDiscounts(?array $appliedDiscounts): self
+    {
+        return $this->setData('applied_discounts', $appliedDiscounts);
     }
 }

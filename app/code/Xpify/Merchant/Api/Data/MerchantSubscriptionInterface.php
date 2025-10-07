@@ -10,7 +10,13 @@ use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 interface MerchantSubscriptionInterface
 {
     const STATUS_ACTIVE = 'ACTIVE';
+    const STATUS_EXPIRED = 'EXPIRED';
+    const STATUS_DECLINED = 'DECLINED';
     const STATUS_DEACTIVATED = 'DEACTIVATED';
+    const STATUS_FROZEN = 'FROZEN';
+    const STATUS_CANCELLED = 'CANCELLED';
+    const STATUS_PENDING = 'PENDING';
+
     const ID = 'entity_id';
     const MERCHANT_ID = 'merchant_id';
     const PLAN_ID = 'plan_id';

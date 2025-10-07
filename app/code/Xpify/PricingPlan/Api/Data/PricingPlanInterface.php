@@ -202,7 +202,7 @@ interface PricingPlanInterface
      * Retrive interval price data by interval key
      *
      * @param string $key
-     * @return array|null
+     * @return array{ interval: string, amount: string|float, compare_at_price: string|float|null, final_amount?: string|float|null }|null
      */
     public function getIntervalPrice(string $key): ?array;
 

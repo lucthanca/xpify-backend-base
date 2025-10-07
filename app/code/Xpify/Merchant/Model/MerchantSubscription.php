@@ -353,7 +353,7 @@ class MerchantSubscription extends AbstractModel implements ISubscription
 
     /**
      * @param bool $parse
-     * @return string|array|null
+     * @return string|array{ durationLimitInIntervals: int, remainingDurationInIntervals: int, priceAfterDiscount: array{ amount: float }, value: array{ amount: array{ amount: float } }|array{ percentage: float } }|null
      */
     public function getAppliedDiscount(bool $parse = true): string|array|null
     {
