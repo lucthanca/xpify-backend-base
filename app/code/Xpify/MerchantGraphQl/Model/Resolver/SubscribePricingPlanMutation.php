@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Xpify\MerchantGraphQl\Model\Resolver;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlAlreadyExistsException;
@@ -14,6 +15,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Psr\Log\LoggerInterface;
 use Xpify\AuthGraphQl\Exception\GraphQlShopifyReauthorizeRequiredException;
 use Xpify\AuthGraphQl\Model\Resolver\AuthSessionAbstractResolver;
+use Xpify\Core\Exception\GraphQlException;
 use Xpify\Core\Helper\Utils;
 use Xpify\Core\Model\Constants;
 use Xpify\Core\Model\Logger;
@@ -75,6 +77,18 @@ class SubscribePricingPlanMutation extends AuthSessionAbstractResolver implement
         $plan = $this->pricingPlanRepository->get($args['input']['plan_id']);
         $merchant = $context->getExtensionAttributes()->getMerchant();
 
+        try {
+            $evMgr = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\Event\ManagerInterface::class);
+            $evMgr->dispatch(
+                'xpify_merchant_before_subscribe_plan',
+                ['merchant' => $merchant, 'plan' => $plan, 'interval' => $args['input']['interval'], 'coupon' => $args['coupon'] ?? null]
+            );
+        } catch (LocalizedException $e) {
+            throw new GraphQlException(__($e->getMessage()));
+        } catch (\Throwable $e) {
+            Logger::getLogger('subscription.events.log')->debug($e->__toString());
+            throw new GraphQlNoSuchEntityException(__(Constants::INTERNAL_SYSTEM_ERROR_MESS));
+        }
         try {
             $payUrl = $this->billing->subscribePlan($merchant, $plan, $args['input']['interval']);
             if ($payUrl) {

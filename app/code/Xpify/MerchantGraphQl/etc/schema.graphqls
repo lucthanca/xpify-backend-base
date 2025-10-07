@@ -11,7 +11,7 @@ type Query {
 }
 
 type Mutation {
-    subscribePricingPlan(input: SubscribePricingPlanInput!): SubscribePricingPlanOutput @doc(description: "Subscribe to a pricing plan") @resolver(class: "Xpify\\MerchantGraphQl\\Model\\Resolver\\SubscribePricingPlanMutation")
+    subscribePricingPlan(input: SubscribePricingPlanInput!, coupon: String): SubscribePricingPlanOutput @doc(description: "Subscribe to a pricing plan") @resolver(class: "Xpify\\MerchantGraphQl\\Model\\Resolver\\SubscribePricingPlanMutation")
 }
 
 input SubscribePricingPlanInput {
