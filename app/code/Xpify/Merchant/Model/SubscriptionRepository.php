@@ -62,6 +62,22 @@ class SubscriptionRepository implements ISubscriptionRepository
 
     /**
      * @inheritDoc
+     * @throws NoSuchEntityException
+     */
+    public function getByShopifySubscriptionId(string $id): ISubscription
+    {
+        try {
+            $obj = $this->subscriptionFactory->create();
+            $this->subscriptionResource->load($obj, $id, ISubscription::SUBSCRIPTION_ID);
+            return $obj;
+        } catch (\Throwable $e) {
+            $this->logger->debug($e->__toString());
+            throw new NoSuchEntityException(__('Subscription not found!'));
+        }
+    }
+
+    /**
+     * @inheritDoc
      */
     public function save(ISubscription $merchantSubscription): ISubscription
     {

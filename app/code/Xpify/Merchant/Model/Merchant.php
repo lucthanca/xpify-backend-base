@@ -82,6 +82,15 @@ class Merchant extends AbstractModel implements IMerchant
     /**
      * @inheritDoc
      */
+    public function getShopName(): ?string
+    {
+        $shop = $this->getShop();
+        return $shop ? str_replace('.myshopify.com', '', $shop) : null;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function setShop(?string $shop): IMerchant
     {
         return $this->setData(IMerchant::SHOP, $shop);

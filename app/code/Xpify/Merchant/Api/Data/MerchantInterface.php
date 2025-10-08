@@ -316,6 +316,16 @@ interface MerchantInterface
     public function getShop(): ?string;
 
     /**
+     * Get the shop name without .myshopify.com
+     *
+     * This method is used to get the shop name of the merchant.
+     * The return type is nullable string, meaning it can return a string or null.
+     *
+     * @return string|null The shop name of the merchant or null if not set
+     */
+    public function getShopName(): ?string;
+
+    /**
      * Set the shop
      *
      * This method is used to set the shop of the merchant.

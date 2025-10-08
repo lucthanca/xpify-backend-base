@@ -18,7 +18,7 @@ interface MerchantSubscriptionInterface
     const STATUS_PENDING = 'PENDING';
 
     const ID = 'entity_id';
-    const MERCHANT_ID = 'merchant_id';
+    const SHOP = 'shop';
     const PLAN_ID = 'plan_id';
     const APP_ID = 'app_id';
     const CODE = 'code';
@@ -114,13 +114,13 @@ interface MerchantSubscriptionInterface
     /**
      * @return int|null
      */
-    public function getMerchantId(): ?int;
+    public function getShop(): ?int;
 
     /**
-     * @param int $merchantId
+     * @param string $name
      * @return MerchantSubscriptionInterface
      */
-    public function setMerchantId(int $merchantId): self;
+    public function setShop(string $name): self;
 
     /**
      * @return int|null

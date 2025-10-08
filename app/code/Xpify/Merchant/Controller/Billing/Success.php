@@ -146,7 +146,7 @@ class Success implements IAction
                 $this->subscriptionResource->deactivateAllSubscriptions((int) $merchant->getId(), (int) $app->getId());
                 $createdAt = $sSubscription['data']['node']['createdAt'];
                 $subscription = $this->subscriptionRepository->create();
-                $subscription->setMerchantId((int) $merchant->getId());
+                $subscription->setShop($merchant->getShopName());
                 $subscription->setPlanId((int) $plan->getId());
                 $subscription->setAppId((int) $merchant->getAppId());
                 $subscription->setCode($plan->getCode());

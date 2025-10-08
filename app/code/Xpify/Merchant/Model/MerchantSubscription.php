@@ -76,17 +76,17 @@ class MerchantSubscription extends AbstractModel implements ISubscription
     /**
      * @inheritDoc
      */
-    public function getMerchantId(): ?int
+    public function getShop(): ?int
     {
-        return (int) $this->getData(self::MERCHANT_ID);
+        return (int) $this->getData(self::SHOP);
     }
 
     /**
      * @inheritDoc
      */
-    public function setMerchantId(int $merchantId): ISubscription
+    public function setShop(string $name): ISubscription
     {
-        return $this->setData(self::MERCHANT_ID, $merchantId);
+        return $this->setData(self::SHOP, $name);
     }
 
     /**
@@ -227,7 +227,10 @@ class MerchantSubscription extends AbstractModel implements ISubscription
     {
         try {
             if (!$this->merchant) {
-                $this->merchant = $this->merchantRepository->getById($this->getMerchantId());
+                $this->merchant = $this->merchantRepository->getBySessId(
+                    "offline_" . $this->getShop() . ".myshopify.com",
+                    $this->getAppId()
+                );
             }
         } catch (\Exception $e) {
             $this->_logger->debug($e);

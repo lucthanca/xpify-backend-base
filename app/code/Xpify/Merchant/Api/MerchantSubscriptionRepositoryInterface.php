@@ -18,6 +18,14 @@ interface MerchantSubscriptionRepositoryInterface
     public function getById(int $id): IMerchantSubscription;
 
     /**
+     * Retrieve subscription by Shopify subscription ID
+     *
+     * @param string $id
+     * @return IMerchantSubscription
+     */
+    public function getByShopifySubscriptionId(string $id): IMerchantSubscription;
+
+    /**
      * @param IMerchantSubscription $merchantSubscription
      * @return IMerchantSubscription
      * @throws \Magento\Framework\Exception\CouldNotSaveException

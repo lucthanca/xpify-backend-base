@@ -63,7 +63,7 @@ class Billing
             throw new AlreadySubscribedException(__("The merchant already has an active payment"), null, self::E_ALREADY_SUBSCRIBED);
         }
         $subscription = Subscription::newSubscription();
-        $subscription->setMerchantId((int) $merchant->getId());
+        $subscription->setShop($merchant->getShopName());
         $subscription->setPlanId((int) $plan->getId());
         $subscription->setAppId((int) $merchant->getAppId());
         $subscription->setCode($plan->getCode());

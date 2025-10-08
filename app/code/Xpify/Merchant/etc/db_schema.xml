@@ -40,7 +40,7 @@
 
     <table name="$xpify_merchant_subscription" resource="default" engine="innodb" comment="Merchant Subscription">
         <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
-        <column xsi:type="bigint" name="merchant_id" unsigned="true" nullable="false" identity="false" padding="20" comment="Merchant ID" />
+        <column xsi:type="varchar" name="shop" nullable="false" length="255" comment="Shopify myshopify name" />
         <column xsi:type="int" name="plan_id" unsigned="true" nullable="false" identity="false" comment="Subscription Plan ID" />
         <column xsi:type="int" name="app_id" unsigned="true" nullable="false" identity="false" comment="Installed App ID" />
         <column xsi:type="varchar" name="code" length="255" comment="Plan code" />
@@ -48,7 +48,7 @@
         <column xsi:type="smallint" name="trial_days" unsigned="true" nullable="false" padding="2" comment="The number of free trial days, starting at the subscription's creation date, by which billing is delayed." />
         <column xsi:type="text" name="description" nullable="true" comment="Plan description"/>
         <column xsi:type="decimal" name="price" scale="6" precision="20" unsigned="false" nullable="true" comment="Plan price" />
-        <column xsi:type="text" name="applied_discount" nullable="true" comment="Applied discounts in JSON format." />
+        <column xsi:type="json" name="applied_discount" nullable="true" comment="Applied discounts in JSON format." />
         <column xsi:type="varchar" name="interval" length="16" nullable="true" comment="Billing Interval Type. ONE_TIME, EVERY_30_DAYS, ANNUAL"/>
         <column xsi:type="varchar" name="status" length="16" nullable="true" comment="Transaction status. ACTIVE, DEACTIVATED"/>
         <column xsi:type="varchar" name="subscription_id" length="32" nullable="true" comment="Shopify App Subscription ID"/>
@@ -64,8 +64,5 @@
         <constraint xsi:type="unique" referenceId="$XPIFY_MC_SUBSCRIPTION_SUBSCRIPTION_ID">
             <column name="subscription_id"/>
         </constraint>
-        <constraint xsi:type="foreign" referenceId="$XPIFY_MC_SUBSCRIPTION_MERCHANT_ID_$XPIFY_MERCHANTS_ENTITY_ID" table="$xpify_merchant_subscription"
-                    column="merchant_id" referenceTable="$xpify_merchants" referenceColumn="entity_id"
-                    onDelete="CASCADE"/>
     </table>
 </schema>

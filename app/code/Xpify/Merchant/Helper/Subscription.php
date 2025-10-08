@@ -12,6 +12,9 @@ use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\Merchant\Exception\AlreadySubscribedException;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 
+/**
+ * @phpstan-import-type AppSubscription from \Xpify\Core\Helper\Types
+ */
 final class Subscription
 {
     use GraphqlQueryTrait;
@@ -46,7 +49,7 @@ final class Subscription
 
         try {
             $subscription = self::newSubscription();
-            $subscription->setMerchantId($merchant->getId());
+            $subscription->setShop($merchant->getShopName());
             $subscription->setAppId($merchant->getAppId());
             $subscription->setPlanId($freePlan->getId());
             $subscription->setName($freePlan->getName());
@@ -65,18 +68,41 @@ final class Subscription
     public static function hasActiveOrFrozenSubscription(IMerchant $merchant): bool
     {
         try {
-            $remoteSub = self::getRemoteActiveSubscription($merchant);
+            $remoteActiveSub = self::getRemoteActiveSubscription($merchant);
+
+            $remoteSub = $remoteActiveSub;
+            unset($remoteActiveSub);
+
+            // Check xem co subscription active trên Shopify không
             if (!$remoteSub) {
-                return false;
+                // Neu khong co thi check xem co subscription frozen tren shopify khong
+                $remoteFrozenSub = self::getLatestSubscription($merchant);
+                if (!$remoteFrozenSub || $remoteFrozenSub['status'] !== 'FROZEN') {
+                    return false;
+                }
+                $remoteSub = $remoteFrozenSub;
+                unset($remoteFrozenSub);
             }
 
-            $returnUrl = $remoteSub['returnUrl'];
+            $remoteSubId = str_replace('gid://shopify/AppSubscription/', '', $remoteSub['id']);
 
-            // extract plan id from return url by getting the _pid
-            $url = parse_url($returnUrl);
+            $localSub = self::getSubscriptionRepository()->getByShopifySubscriptionId($remoteSubId);
 
-            $localSub = self::getSubscription($merchant);
-        } catch (ShopifyQueryException $e) {
+            $localSub->setStatus($remoteSub['status']);
+            if (!$localSub->getId()) {
+                $returnUrl = $remoteSub['returnUrl'];
+                // extract plan id from return url by getting the _pid from url path, by parsing the url using magento uri object
+                $request = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\App\RequestInterface::class);
+                $clonedRequest = clone $request;
+                unset($request);
+                $urlParts = parse_url($returnUrl);
+
+                $planUid = null;
+
+            }
+            $localSub->save();
+
+        } catch (\Throwable $e) {
             Logger::getLogger('merchant.subscription.log')->debug($e->__toString());
             return false;
         }
@@ -86,17 +112,26 @@ final class Subscription
      * Retrieve active subscription from Shopify
      *
      * @param IMerchant $merchant
-     * @return array{ id: string, name: string, status: string, createdAt: string, returnUrl: string, trialDays: string  }|null
+     * @return AppSubscription|null
      * @throws ShopifyQueryException
      */
-    protected static function getRemoteActiveSubscription(IMerchant $merchant): ?array
+    private static function getRemoteActiveSubscription(IMerchant $merchant): ?array
     {
         $responseBody = self::query($merchant, self::RECURRING_PURCHASES_QUERY);
-        $subscriptions = $responseBody["data"]["currentAppInstallation"]["activeSubscriptions"];
-        if (count($subscriptions) > 0) {
-            return $subscriptions[0];
-        }
-        return null;
+        return $responseBody["data"]["currentAppInstallation"]["activeSubscriptions"][0] ?? null;
+    }
+
+    /**
+     * Retrieve latest subscription from Shopify
+     *
+     * @param IMerchant $merchant
+     * @return AppSubscription|null
+     * @throws ShopifyQueryException
+     */
+    private static function getLatestSubscription(IMerchant $merchant): ?array
+    {
+        $res = self::query($merchant, self::LATEST_SUBSCRIPTION_QUERY);
+        return $res["data"]["currentAppInstallation"]['allSubscriptions']['nodes'][0] ?? null;
     }
 
 
@@ -135,7 +170,7 @@ final class Subscription
     {
         if (!isset(self::$subscriptions[$merchant->getId()])) {
             $criteriaBuilder = self::getSearchCriteriaBuilder();
-            $criteriaBuilder->addFilter(ISubscription::MERCHANT_ID, $merchant->getId());
+            $criteriaBuilder->addFilter(ISubscription::SHOP, $merchant->getShopName());
             $criteriaBuilder->addFilter(ISubscription::APP_ID, $merchant->getAppId());
             $criteriaBuilder->addFilter(ISubscription::STATUS, [
                 ISubscription::STATUS_ACTIVE,
@@ -161,7 +196,7 @@ final class Subscription
     {
         if (!isset(self::$subscriptionList[$merchant->getId()])) {
             $criteriaBuilder = self::getSearchCriteriaBuilder();
-            $criteriaBuilder->addFilter(ISubscription::MERCHANT_ID, $merchant->getId());
+            $criteriaBuilder->addFilter(ISubscription::SHOP, $merchant->getShopName());
             $criteriaBuilder->addFilter(ISubscription::APP_ID, $merchant->getAppId());
             $searchResults = self::getSubscriptionRepository()->getList($criteriaBuilder->create());
             if ($searchResults->getTotalCount() > 0) {
@@ -197,4 +232,15 @@ final class Subscription
         }
     }
     QUERY;
+
+    private const LATEST_SUBSCRIPTION_QUERY = <<<'QUERY'
+query LatestSubscription {
+    currentAppInstallation{
+        allSubscriptions(first: 1, sortKey: CREATED_AT, reverse: true){
+            nodes{id name status}
+        }
+    }
+}
+QUERY;
+
 }
