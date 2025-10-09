@@ -7,6 +7,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\GraphQl\Query\Uid;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\App\RequestInterface as IRequest;
 
 final class Utils
 {
@@ -221,5 +222,40 @@ final class Utils
                 ]
             );
         }
+    }
+
+    /**
+     * Parse a URL and return a magento request object
+     *
+     * @param string $url
+     * @return IRequest
+     */
+    public static function parseRequest(string $url): IRequest
+    {
+        $request = \Magento\Framework\App\ObjectManager::getInstance()->get(IRequest::class);
+        $clonedRequest = clone $request;
+        unset($request);
+        $urlParts = parse_url($url);
+
+        $clonedRequest->setBaseUrl(
+            $urlParts['scheme'] . '://' . $urlParts['host'] . (($urlParts['port'] ?? false) ? ':' . $urlParts['port'] : '')
+        );
+        $clonedRequest->setBasePath($urlParts['path']);
+        $clonedRequest->setRequestUri($url);
+        $path = trim($clonedRequest->getPathInfo(), '/');
+
+        /** @var array{ moduleFrontName: string, actionPath: string, actionName: string, variables?: array } $parts */
+        $parts = [];
+        $params = explode('/', strlen($path) ? $path : '');
+        foreach (['moduleFrontName', 'actionPath', 'actionName'] as $paramName) {
+            $parts[$paramName] = array_shift($params);
+        }
+
+        for ($i = 0, $l = count($params); $i < $l; $i += 2) {
+            $parts['variables'][$params[$i]] = isset($params[$i + 1]) ? urldecode($params[$i + 1]) : '';
+        }
+        $clonedRequest->setParams($parts['variables'] ?? []);
+
+        return $clonedRequest;
     }
 }

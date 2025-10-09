@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Xpify\Merchant\Helper;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\App\ObjectManager;
 use Xpify\Core\Exception\ShopifyQueryException;
 use Xpify\Core\Model\Logger;
 use Xpify\Merchant\Api\Data\MerchantSubscriptionInterface as ISubscription;
@@ -11,6 +12,7 @@ use Xpify\Merchant\Api\MerchantSubscriptionRepositoryInterface as ISubscriptionR
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\Merchant\Exception\AlreadySubscribedException;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
+use Xpify\PricingPlan\Api\PricingPlanRepositoryInterface as IPricingPlanRepository;
 
 /**
  * @phpstan-import-type AppSubscription from \Xpify\Core\Helper\Types
@@ -40,7 +42,7 @@ final class Subscription
      */
     public static function assignFreeSubscription(IMerchant $merchant): void
     {
-        $freePlan = \Magento\Framework\App\ObjectManager::getInstance()->get(\Xpify\PricingPlan\Service\PricingManager::class)->getFreePricingPlan((int) $merchant->getAppId());
+        $freePlan = ObjectManager::getInstance()->get(\Xpify\PricingPlan\Service\PricingManager::class)->getFreePricingPlan((int) $merchant->getAppId());
         // Get current active plan
         $activeSubscription = self::getSubscription($merchant);
         if ($activeSubscription?->getId()) {
@@ -90,15 +92,42 @@ final class Subscription
 
             $localSub->setStatus($remoteSub['status']);
             if (!$localSub->getId()) {
-                $returnUrl = $remoteSub['returnUrl'];
-                // extract plan id from return url by getting the _pid from url path, by parsing the url using magento uri object
-                $request = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\App\RequestInterface::class);
-                $clonedRequest = clone $request;
-                unset($request);
-                $urlParts = parse_url($returnUrl);
+                $returnUrlRequest = \Xpify\Core\Helper\Utils::parseRequest($remoteSub['returnUrl']);
+                $planId = $returnUrlRequest->getParam('_pid');
+                if (!$planId) {
+                    throw new \RuntimeException("Cannot find pricing plan id from return url");
+                    // keep return true because the merchant has active or frozen subscription on Shopify
+                }
+                $planId = (int) \Xpify\Core\Helper\Utils::uidToId($planId);
+                $planRepository = ObjectManager::getInstance()->get(IPricingPlanRepository::class);
+                try {
+                    $plan = $planRepository->get($planId, true);
+                } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                    throw new \RuntimeException("Cannot find pricing plan with id $planId");
+                }
+                $localSub->setPlanId($planId);
+                $localSub->setAppId($merchant->getAppId());
+                $localSub->setCode($plan->getCode());
+                $localSub->setName($plan->getName());
 
-                $planUid = null;
+                $appRecurringPrice = $remoteSub['lineItems'][0]['plan']['pricingDetails']['price']['amount'] ?? null;
+                $interval = $remoteSub['lineItems'][0]['plan']['pricingDetails']['interval'] ?? null;
+                if (!$appRecurringPrice || !$interval) {
+                    throw new \RuntimeException("Cannot get recurring price from Shopify subscription");
+                }
+                $localSub->setPrice((float) $appRecurringPrice);
+                $localSub->setInterval($interval);
 
+                $dateTime = ObjectManager::getInstance()->get(\Magento\Framework\Stdlib\DateTime\DateTime::class);
+                $localSub->setCreatedAt($dateTime->gmtDate('Y-m-d H:i:s', $remoteSub['createdAt']));
+                $localSub->setSubscriptionId($remoteSubId);
+                $localSub->setTrialDays((int) $remoteSub['trialDays']);
+                $localSub->setShop($merchant->getShopName());
+                $discount = $remoteSub['lineItems'][0]['plan']['pricingDetails']['discount'] ?? [];
+                if ($returnUrlRequest->getParam('coupon')) {
+                    $discount['coupon'] = $returnUrlRequest->getParam('coupon');
+                }
+                $localSub->setAppliedDiscount($discount);
             }
             $localSub->save();
 
@@ -212,7 +241,7 @@ final class Subscription
     private static function getSubscriptionRepository(): ISubscriptionRepository
     {
         if (!self::$subscriptionRepository) {
-            self::$subscriptionRepository = \Magento\Framework\App\ObjectManager::getInstance()->get(ISubscriptionRepository::class);
+            self::$subscriptionRepository = ObjectManager::getInstance()->get(ISubscriptionRepository::class);
         }
         return self::$subscriptionRepository;
     }
@@ -222,25 +251,49 @@ final class Subscription
      */
     private static function getSearchCriteriaBuilder(): SearchCriteriaBuilder
     {
-        return \Magento\Framework\App\ObjectManager::getInstance()->create(SearchCriteriaBuilder::class);
+        return ObjectManager::getInstance()->create(SearchCriteriaBuilder::class);
     }
+
+    private const APP_SUBSCRIPTION_FRAGMENT = <<<'QUERY'
+    fragment AppSubscriptionFragment on AppSubscription {
+        id name status test returnUrl trialDays createdAt
+        lineItems {
+            plan {
+                pricingDetails {
+                    ... on AppRecurringPricing {
+                        interval price { amount }
+                        discount {
+                            durationLimitInIntervals priceAfterDiscount { amount }
+                            value {
+                                ... on AppSubscriptionDiscountAmount { amount { amount } }
+                                ... on AppSubscriptionDiscountPercentage { percentage }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+QUERY;
+
 
     private const RECURRING_PURCHASES_QUERY = <<<'QUERY'
     query appSubscription {
         currentAppInstallation {
-            activeSubscriptions { id name test currentPeriodEnd trialDays }
+            activeSubscriptions { ...AppSubscriptionFragment }
         }
     }
-    QUERY;
+QUERY . "\n" .
+    self::APP_SUBSCRIPTION_FRAGMENT;
 
     private const LATEST_SUBSCRIPTION_QUERY = <<<'QUERY'
 query LatestSubscription {
     currentAppInstallation{
         allSubscriptions(first: 1, sortKey: CREATED_AT, reverse: true){
-            nodes{id name status}
+            nodes{ ...AppSubscriptionFragment }
         }
     }
 }
-QUERY;
-
+QUERY. "\n" .
+    self::APP_SUBSCRIPTION_FRAGMENT;
 }
