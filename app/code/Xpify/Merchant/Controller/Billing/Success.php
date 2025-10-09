@@ -15,6 +15,7 @@ use Xpify\App\Service\GetCurrentApp;
 use Xpify\Core\Helper\ShopifyContextInitializer;
 use Xpify\Core\Helper\Utils;
 use Xpify\Core\Model\Logger;
+use Xpify\Merchant\Api\Data\MerchantSubscriptionInterface as IMerchantSubscription;
 use Xpify\Merchant\Api\MerchantRepositoryInterface as IMerchantRepository;
 use Xpify\Merchant\Api\MerchantSubscriptionRepositoryInterface as ISubscriptionRepository;
 use Xpify\Merchant\Helper\GraphqlQueryTrait;
@@ -86,6 +87,10 @@ class Success implements IAction
     public function execute()
     {
         $unknownErrorMsg = \Xpify\Core\Model\Constants::INTERNAL_SYSTEM_ERROR_MESS;
+
+        // Log all request params for debugging
+        Logger::getLogger('App.billing.success.log')->debug('Billing Success Request Params: ' . json_encode($this->getRequest()->getParams()));
+
         try {
             try {
                 $app = $this->currentApp->get();
@@ -103,16 +108,22 @@ class Success implements IAction
             ) {
                 throw new PurchaseSectionException('Invalid request');
             }
+
+            $coupon = $this->getRequest()->getParam('_cp');
             $interval = $this->getRequest()->getParam('_interval');
             $merchantId = $this->getRequest()->getParam('_mid');
             $sign = $this->getRequest()->getParam('_sign');
+            $payload = [
+                '_mid' => $merchantId,
+                '_i' => $appUid,
+                '_pid' => $planUid,
+                '_interval' => $interval,
+            ];
+            if ($coupon) {
+                $payload['_cp'] = $coupon;
+            }
             $isValid = Utils::validateHmac([
-                'data' => [
-                    '_mid' => $merchantId,
-                    '_i' => $appUid,
-                    '_pid' => $planUid,
-                    '_interval' => $interval,
-                ],
+                'data' => $payload,
                 'buildQuery' => true,
                 'buildQueryWithJoin' => true,
                 'hmac' => $sign,
@@ -122,13 +133,7 @@ class Success implements IAction
             }
             $this->shopifyContextInitializer->initialize($app);
             $merchant = $this->merchantRepository->getById((int) $merchantId);
-            if (!$merchant?->getId()) {
-                throw new PurchaseSectionException('Merchant not found');
-            }
-            $plan = $this->pricingPlanRepository->get(Utils::uidToId($planUid));
-            if (!$plan?->getId()) {
-                throw new PurchaseSectionException('Pricing plan not found!');
-            }
+
             $sSubscription = self::query($merchant, [
                 'query' => self::SUBSCRIPTION_STATUS_QUERY,
                 'variables' => ['id' => $this->getShopifyAppSubscriptionId()],
@@ -138,36 +143,21 @@ class Success implements IAction
                 throw new PurchaseSectionException($unknownErrorMsg);
             }
             $subscriptionStatus = $sSubscription['data']['node']['status'];
-            if ($subscriptionStatus !== 'ACCEPTED' && $subscriptionStatus !== 'ACTIVE') {
+            if ($subscriptionStatus !== IMerchantSubscription::STATUS_ACTIVE) {
                 throw new PurchaseSectionException('Invalid subscription');
             }
 
             try {
                 $this->subscriptionResource->deactivateAllSubscriptions((int) $merchant->getId(), (int) $app->getId());
-                $createdAt = $sSubscription['data']['node']['createdAt'];
-                $subscription = $this->subscriptionRepository->create();
-                $subscription->setShop($merchant->getShopName());
-                $subscription->setPlanId((int) $plan->getId());
-                $subscription->setAppId((int) $merchant->getAppId());
-                $subscription->setCode($plan->getCode());
-                $subscription->setName($plan->getName());
-                $subscription->setDescription($plan->getDescription());
-                $subscription->setPrice($plan->getIntervalAmount($interval));
-                $subscription->setInterval($interval);
-                $subscription->setCreatedAt($createdAt);
-                $subscription->setStatus($subscriptionStatus);
-                $subscription->setSubscriptionId($chargeId);
+                $subscription = $this->subscriptionRepository->getByShopifySubscriptionId($chargeId);
+                if (!$subscription->getId()) {
+                    throw new PurchaseSectionException('Subscription not found in DB!');
+                }
+                $subscription->setConfirmationUrl(null);
+                $subscription->setStatus(IMerchantSubscription::STATUS_ACTIVE);
                 $subscription = $this->subscriptionRepository->save($subscription);
             } catch (\Throwable $e) {
-                $details = [
-                    'merchant_id' => $merchant->getId(),
-                    'app_id' => $app->getId(),
-                    'plan_id' => $plan->getId(),
-                    'charge_id' => $chargeId,
-                    'interval' => $interval,
-                    'created_at' => $createdAt ?? null,
-                ];
-                Logger::getLogger("App.subscription.log")->debug("Lỗi khi save subscription vào DB. {$e->getMessage()}. Trace: {$e->getTraceAsString()}");
+                Logger::getLogger("App.billing.log")->debug($e->__toString());
                 throw new PurchaseSectionException("Our system failed. Please contact us for support.");
             }
 
@@ -193,7 +183,7 @@ class Success implements IAction
         } catch (PurchaseSectionException $e) {
             echo $e->getMessage();
         } catch (\Throwable $e) {
-            Logger::getLogger("App.subscription.log")->debug("{$e->getMessage()}. Trace: {$e->getTraceAsString()}");
+            Logger::getLogger("App.billing.log")->debug($e->__toString());
             echo $unknownErrorMsg;
         }
         return $this->resultFactory->create(ResultFactory::TYPE_RAW)->setHttpResponseCode(400)->setContents('');
@@ -206,7 +196,7 @@ class Success implements IAction
      */
     private function getShopifyAppSubscriptionId(): string
     {
-        return 'gid://shopify/AppSubscription/' . $this->getRequest()->getParam('charge_id');
+        return \Xpify\Core\Model\Constants::SHOPIFY_SUBSCRIPTION_GLOBAL_ID_PREFIX . $this->getRequest()->getParam('charge_id');
     }
 
     /**

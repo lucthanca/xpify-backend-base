@@ -258,4 +258,19 @@ final class Utils
 
         return $clonedRequest;
     }
+
+    /**
+     * Build magento style params path from array
+     *
+     * @param array $paths
+     * @return string
+     */
+    public static function buildMagentoParamsPath(array $paths): string
+    {
+        return implode('', array_map(
+            fn($k, $v) => '/' . $k . '/' . rawurlencode($v),
+            array_keys($paths),
+            $paths
+        ));
+    }
 }

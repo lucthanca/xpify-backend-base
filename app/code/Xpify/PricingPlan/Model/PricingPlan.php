@@ -13,6 +13,9 @@ use Xpify\App\Api\AppRepositoryInterface;
 use Xpify\App\Api\Data\AppInterface as IApp;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface;
 
+/**
+ * @phpstan-type AppliedDiscount array{name: string, applied_coupon: string, discount_type: 'PERCENTAGE'|'FIXED_AMOUNT', duration_limit_in_intervals: int|null, discount_amount: float }
+ */
 class PricingPlan extends AbstractModel implements PricingPlanInterface
 {
     /**
@@ -322,7 +325,7 @@ class PricingPlan extends AbstractModel implements PricingPlanInterface
     /**
      * Retrieve applied discounts
      *
-     * @return array<int, array{ name: string, applied_coupon: string, discount_type: 'PERCENTAGE'|'FIXED_AMOUNT' }>|null
+     * @return array<int, AppliedDiscount>|null
      */
     public function getAppliedDiscounts(): ?array
     {

@@ -46,7 +46,8 @@ type ActivePricingPlan {
     id: ID!
     code: String!
     name: String!
-    price: Float!
+    base_price: Float!
+    final_price: Float!
     interval: PricingPlanInterval!
     created_at: String!
     status:PricingPlanStatus

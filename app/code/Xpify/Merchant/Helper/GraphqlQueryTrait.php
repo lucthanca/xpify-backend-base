@@ -24,6 +24,8 @@ trait GraphqlQueryTrait
             if (!empty($responseBody["errors"])) {
                 throw new ShopifyQueryException("Receive response error.", (array) $responseBody["errors"]);
             }
+        } catch (ShopifyQueryException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             self::getLogger()?->debug($e->getMessage() . PHP_EOL . $e->getTraceAsString());
             throw new ShopifyQueryException($e->getMessage(), [], $e);

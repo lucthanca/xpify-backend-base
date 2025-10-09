@@ -34,7 +34,11 @@ class MerchantSubscription extends AbstractDb
             [
                 'merchant_id = ?' => $merchantId,
                 'app_id = ?' => $appId,
-                'status != ?' => IMerchantSubscription::STATUS_DEACTIVATED,
+                'status IN (?)' => [
+                    IMerchantSubscription::STATUS_ACTIVE,
+                    IMerchantSubscription::STATUS_FROZEN,
+                    IMerchantSubscription::STATUS_PENDING,
+                ]
             ]
         );
     }

@@ -11,6 +11,7 @@ use Xpify\Merchant\Api\Data\MerchantSubscriptionInterface as ISubscription;
 use Xpify\Merchant\Api\MerchantSubscriptionRepositoryInterface as ISubscriptionRepository;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\Merchant\Exception\AlreadySubscribedException;
+use Xpify\Merchant\Exception\ShopifyAppSubscriptionException;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 use Xpify\PricingPlan\Api\PricingPlanRepositoryInterface as IPricingPlanRepository;
 
@@ -30,6 +31,65 @@ final class Subscription
      */
     private static array $subscriptionList = [];
     private static ?ISubscriptionRepository $subscriptionRepository = null;
+
+    /**
+     * Chắc chắn merchant có subscription trong hệ thống
+     *
+     * @param IMerchant $merchant
+     * @param AppSubscription $shopifySubscription
+     * @return void
+     * @throws ShopifyAppSubscriptionException|\Magento\Framework\GraphQl\Exception\GraphQlInputException
+     */
+    public static function ensureSubscription(IMerchant $merchant, array $shopifySubscription): void
+    {
+        $remoteSubId = str_replace(\Xpify\Core\Model\Constants::SHOPIFY_SUBSCRIPTION_GLOBAL_ID_PREFIX, '', $shopifySubscription['id']);
+        $localSub = self::getSubscriptionRepository()->getByShopifySubscriptionId($remoteSubId);
+
+        if (!$localSub->getId()) {
+            $localSub->setStatus($shopifySubscription['status']);
+            $returnUrlRequest = \Xpify\Core\Helper\Utils::parseRequest($shopifySubscription['returnUrl']);
+            $planId = $returnUrlRequest->getParam('_pid');
+            if (!$planId) {
+                throw new ShopifyAppSubscriptionException("Cannot find pricing plan id from return url");
+                // keep return true because the merchant has active or frozen subscription on Shopify
+            }
+            $planId = (int) \Xpify\Core\Helper\Utils::uidToId($planId);
+            $planRepository = ObjectManager::getInstance()->get(IPricingPlanRepository::class);
+            try {
+                $plan = $planRepository->get($planId, true);
+            } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                throw new ShopifyAppSubscriptionException("Cannot find pricing plan with id $planId");
+            }
+            $localSub->setPlanId($planId);
+            $localSub->setAppId($merchant->getAppId());
+            $localSub->setCode($plan->getCode());
+            $localSub->setName($plan->getName());
+
+            $appRecurringPrice = $shopifySubscription['lineItems'][0]['plan']['pricingDetails']['price']['amount'] ?? null;
+            $interval = $shopifySubscription['lineItems'][0]['plan']['pricingDetails']['interval'] ?? null;
+            if (!$appRecurringPrice || !$interval) {
+                throw new ShopifyAppSubscriptionException("Cannot get recurring price from Shopify subscription");
+            }
+            $localSub->setPrice((float) $appRecurringPrice);
+            $localSub->setInterval($interval);
+
+            $localSub->setCreatedAt(date('Y-m-d H:i:s', strtotime($shopifySubscription['createdAt'])));
+            $localSub->setSubscriptionId($remoteSubId);
+            $localSub->setTrialDays((int) $shopifySubscription['trialDays']);
+            $localSub->setShop($merchant->getShopName());
+            $discount = $shopifySubscription['lineItems'][0]['plan']['pricingDetails']['discount'] ?? [];
+            if ($returnUrlRequest->getParam('_cp')) {
+                $discount['coupon'] = $returnUrlRequest->getParam('_cp');
+            }
+            $localSub->setAppliedDiscount($discount);
+
+            try {
+                self::getSubscriptionRepository()->save($localSub);
+            } catch (\Magento\Framework\Exception\CouldNotSaveException $e) {
+                throw new ShopifyAppSubscriptionException("Cannot save subscription.");
+            }
+        }
+    }
 
     /**
      * Assign free subscription to the given merchant
@@ -67,76 +127,6 @@ final class Subscription
         }
     }
 
-    public static function hasActiveOrFrozenSubscription(IMerchant $merchant): bool
-    {
-        try {
-            $remoteActiveSub = self::getRemoteActiveSubscription($merchant);
-
-            $remoteSub = $remoteActiveSub;
-            unset($remoteActiveSub);
-
-            // Check xem co subscription active trên Shopify không
-            if (!$remoteSub) {
-                // Neu khong co thi check xem co subscription frozen tren shopify khong
-                $remoteFrozenSub = self::getLatestSubscription($merchant);
-                if (!$remoteFrozenSub || $remoteFrozenSub['status'] !== 'FROZEN') {
-                    return false;
-                }
-                $remoteSub = $remoteFrozenSub;
-                unset($remoteFrozenSub);
-            }
-
-            $remoteSubId = str_replace('gid://shopify/AppSubscription/', '', $remoteSub['id']);
-
-            $localSub = self::getSubscriptionRepository()->getByShopifySubscriptionId($remoteSubId);
-
-            $localSub->setStatus($remoteSub['status']);
-            if (!$localSub->getId()) {
-                $returnUrlRequest = \Xpify\Core\Helper\Utils::parseRequest($remoteSub['returnUrl']);
-                $planId = $returnUrlRequest->getParam('_pid');
-                if (!$planId) {
-                    throw new \RuntimeException("Cannot find pricing plan id from return url");
-                    // keep return true because the merchant has active or frozen subscription on Shopify
-                }
-                $planId = (int) \Xpify\Core\Helper\Utils::uidToId($planId);
-                $planRepository = ObjectManager::getInstance()->get(IPricingPlanRepository::class);
-                try {
-                    $plan = $planRepository->get($planId, true);
-                } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-                    throw new \RuntimeException("Cannot find pricing plan with id $planId");
-                }
-                $localSub->setPlanId($planId);
-                $localSub->setAppId($merchant->getAppId());
-                $localSub->setCode($plan->getCode());
-                $localSub->setName($plan->getName());
-
-                $appRecurringPrice = $remoteSub['lineItems'][0]['plan']['pricingDetails']['price']['amount'] ?? null;
-                $interval = $remoteSub['lineItems'][0]['plan']['pricingDetails']['interval'] ?? null;
-                if (!$appRecurringPrice || !$interval) {
-                    throw new \RuntimeException("Cannot get recurring price from Shopify subscription");
-                }
-                $localSub->setPrice((float) $appRecurringPrice);
-                $localSub->setInterval($interval);
-
-                $dateTime = ObjectManager::getInstance()->get(\Magento\Framework\Stdlib\DateTime\DateTime::class);
-                $localSub->setCreatedAt($dateTime->gmtDate('Y-m-d H:i:s', $remoteSub['createdAt']));
-                $localSub->setSubscriptionId($remoteSubId);
-                $localSub->setTrialDays((int) $remoteSub['trialDays']);
-                $localSub->setShop($merchant->getShopName());
-                $discount = $remoteSub['lineItems'][0]['plan']['pricingDetails']['discount'] ?? [];
-                if ($returnUrlRequest->getParam('coupon')) {
-                    $discount['coupon'] = $returnUrlRequest->getParam('coupon');
-                }
-                $localSub->setAppliedDiscount($discount);
-            }
-            $localSub->save();
-
-        } catch (\Throwable $e) {
-            Logger::getLogger('merchant.subscription.log')->debug($e->__toString());
-            return false;
-        }
-    }
-
     /**
      * Retrieve active subscription from Shopify
      *
@@ -163,20 +153,52 @@ final class Subscription
         return $res["data"]["currentAppInstallation"]['allSubscriptions']['nodes'][0] ?? null;
     }
 
-
     /**
-     * Check if merchant has subscription
+     * Kiểm tra xem merchant đã đăng ký gói cước với tên và chu kỳ thanh toán tương ứng chưa
      *
      * @param IMerchant $merchant
-     * @return array [bool, ISubscription|null]
+     * @param IPricingPlan $plan
+     * @param string $interval
+     * @return bool
+     * @throws ShopifyAppSubscriptionException
      */
-    public static function hasSubscription(IMerchant $merchant, IPricingPlan $plan, string $interval): array
+    public static function hasSubscribed(IMerchant $merchant, IPricingPlan $plan, string $interval): bool
     {
-        $subscription = self::getSubscription($merchant);
-        if ($subscription?->getPlanId() . "" === $plan->getId() . "" && $subscription->getInterval() === $interval) {
-            return [true, $subscription];
+        try {
+            $remoteActiveSub = self::getRemoteActiveSubscription($merchant);
+            $remoteSub = $remoteActiveSub;
+            unset($remoteActiveSub);
+
+            // Check xem co subscription active trên Shopify không
+            if (!$remoteSub) {
+                // Neu khong co thi check xem co subscription frozen tren shopify khong
+                $remoteFrozenSub = self::getLatestSubscription($merchant);
+                if (!$remoteFrozenSub || $remoteFrozenSub['status'] !== 'FROZEN') {
+                    return false;
+                }
+                $remoteSub = $remoteFrozenSub;
+                unset($remoteFrozenSub);
+            }
+
+            $currentPlanName = $remoteSub['name'];
+            $currentInterval = $remoteSub['lineItems'][0]['plan']['pricingDetails']['interval'] ?? null;
+
+            if (!$currentPlanName || !$currentInterval) {
+                throw new ShopifyAppSubscriptionException("Cannot get plan name or interval from Shopify subscription");
+            }
+
+            return strtolower($currentPlanName) === strtolower($plan->getName()) && $currentInterval === $interval;
+        } catch (ShopifyAppSubscriptionException $e) {
+            Logger::getLogger('merchant.subscription.log')->debug(
+                (isset($remoteSub) ? json_encode($remoteSub) : "") .
+                "\n" .
+                $e->__toString()
+            );
+            throw $e;
+        } catch (\Throwable $e) {
+            Logger::getLogger('merchant.subscription.log')->debug($e->__toString());
+            throw new ShopifyAppSubscriptionException("Cannot check subscription.");
         }
-        return [false, null];
     }
 
     /**

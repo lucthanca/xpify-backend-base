@@ -39,23 +39,23 @@ class AppSubscriptionUpdate implements Handler
             return;
         }
         // extract the subscription ID from the admin_graphql_api_id. gid://shopify/AppSubscription/35176841492
-        $subscription_id = str_replace('gid://shopify/AppSubscription/', '', $admin_graphql_api_id);
+        $subscription_id = str_replace(\Xpify\Core\Model\Constants::SHOPIFY_SUBSCRIPTION_GLOBAL_ID_PREFIX, '', $admin_graphql_api_id);
         try {
             $subscription = $this->subscriptionFactory->create();
             $this->subscriptionResource->loadBySubscription($subscription, $subscription_id);
         } catch (NoSuchEntityException $e) {
-            $logger->debug($e->getMessage());
+            $logger->debug($e->__toString());
             return;
         }
 
         try {
             $status = $app_subscription['status'];
-            if ($subscription->getStatus() !== $status) {
-                $subscription->setStatus($status);
+            if (strtolower($subscription->getStatus()) !== strtolower($status)) {
+                $subscription->setStatus(strtoupper($status));
                 $this->subscriptionResource->save($subscription);
             }
         } catch (\Throwable $e) {
-            $logger->debug("{$e->getMessage()} | {$e->getTraceAsString()}");
+            $logger->debug($e->__toString());
         }
     }
 }

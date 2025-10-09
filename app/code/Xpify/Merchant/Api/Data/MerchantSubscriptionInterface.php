@@ -7,6 +7,9 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\PricingPlan\Api\Data\PricingPlanInterface as IPricingPlan;
 
+/**
+ * @phpstan-import-type AppSubscriptionDiscount from \Xpify\Core\Helper\Types
+ */
 interface MerchantSubscriptionInterface
 {
     const STATUS_ACTIVE = 'ACTIVE';
@@ -35,6 +38,10 @@ interface MerchantSubscriptionInterface
 
     public function getFinalPrice(): float;
 
+    /**
+     * @param bool $parse
+     * @return string|AppSubscriptionDiscount|null
+     */
     public function getAppliedDiscount(bool $parse = true): string|array|null;
 
     public function setAppliedDiscount(string|array|null $appliedDiscount): self;

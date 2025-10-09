@@ -5,6 +5,11 @@ namespace Xpify\Core\Helper;
 
 /**
  * @phpstan-type AppSubscriptionStatus 'PENDING'|'DECLINED'|'ACTIVE'|'EXPIRED'|'FROZEN'|'CANCELLED'
+ * @phpstan-type AppSubscriptionDiscount array{
+ *     durationLimitInIntervals: int, priceAfterDiscount: array{ amount: float }, value: array{
+ *         amount?: array{ amount: float }, percentage?: float
+ *     }
+ *  }
  * @phpstan-type AppSubscription array{
  *     id: string,
  *     name: string,
@@ -18,16 +23,11 @@ namespace Xpify\Core\Helper;
  *             pricingDetails: array{
  *                 interval: 'EVERY_30_DAYS' | 'ANNUAL' | 'ONE_TIME',
  *                 price: array{ amount: float },
- *                 discount: array{
- *                     durationLimitInIntervals: int, priceAfterDiscount: array{ amount: float }, value: array{
- *                         amount?: array{ amount: float }, percentage?: float
- *                     }
- *                 }
+ *                 discount: AppSubscriptionDiscount
  *             }
  *         }
  *     }>
  *  }
- * /
  */
 class Types {
 

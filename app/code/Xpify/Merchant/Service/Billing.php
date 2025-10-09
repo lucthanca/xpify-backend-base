@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Xpify\Merchant\Service;
 
 use Magento\Framework\Exception\NoSuchEntityException;
+use SectionBuilder\Discount\Api\Data\CouponInterface as ICoupon;
+use SectionBuilder\Discount\Api\Data\CouponUsageInterface as ICouponUsage;
 use Shopify\Auth\Session;
 use Shopify\Context;
 use Xpify\App\Api\Data\AppInterface as IApp;
@@ -11,6 +13,7 @@ use Xpify\Core\Exception\ShopifyQueryException;
 use Xpify\Core\Helper\Utils;
 use Xpify\Merchant\Api\Data\MerchantInterface as IMerchant;
 use Xpify\Merchant\Exception\AlreadySubscribedException;
+use Xpify\Merchant\Exception\ShopifyAppSubscriptionException;
 use Xpify\Merchant\Exception\ShopifyBillingException;
 use Xpify\Merchant\Helper\GraphqlQueryTrait;
 use Xpify\Merchant\Helper\Subscription;
@@ -18,6 +21,26 @@ use Xpify\PricingPlan\Api\Data\PricingPlanInterface;
 use Xpify\PricingPlan\Api\PricingPlanRepositoryInterface as IPricingPlanRepository;
 use Xpify\PricingPlan\Model\Source\IntervalType;
 
+/**
+ * @phpstan-import-type AppSubscription from \Xpify\Core\Helper\Types
+ * @phpstan-import-type AppliedDiscount from \Xpify\PricingPlan\Model\PricingPlan
+ * @phpstan-type AppPricingInterval 'ANNUAL'|'EVERY_30_DAYS'
+ * @phpstan-type RecurringPaymentConfig array{
+ *     chargeName: string,
+ *     amount: float,
+ *     currencyCode: 'USD',
+ *     interval: AppPricingInterval,
+ *     trialDays: int,
+ *     return_url: string,
+ *     discount?: array{
+ *         durationLimitInIntervals?: int,
+ *         value: array{
+ *             amount?: float,
+ *             percentage?: float
+ *         }
+ *     }|null
+ * }
+ */
 class Billing
 {
     use GraphqlQueryTrait;
@@ -58,81 +81,126 @@ class Billing
         if ($plan->getIntervalAmount($interval) <= 0.0) {
             throw new AlreadySubscribedException(__("The plan is free"));
         }
-        list($hasSubscription) = Subscription::hasSubscription($merchant, $plan, $interval);
-        if ($hasSubscription) {
-            throw new AlreadySubscribedException(__("The merchant already has an active payment"), null, self::E_ALREADY_SUBSCRIBED);
-        }
-        $subscription = Subscription::newSubscription();
-        $subscription->setShop($merchant->getShopName());
-        $subscription->setPlanId((int) $plan->getId());
-        $subscription->setAppId((int) $merchant->getAppId());
-        $subscription->setCode($plan->getCode());
-        $subscription->setDescription($plan->getDescription());
-        $subscription->setName($plan->getName());
-        $subscription->setPrice($plan->getIntervalAmount($interval));
-        $subscription->setTrialDays((int) $plan->getFreeTrialDays());
-        $subscription->setInterval($interval);
         $config = [
-            'chargeName' => $subscription->getName(),
-            'amount' => $subscription->getPrice(),
+            'chargeName' => $plan->getName(),
+            'amount' => $plan->getIntervalAmount($interval),
             'currencyCode' => \Xpify\App\Api\Data\AppInterface::CURRENCY_CODE,
             'interval' => $interval,
-            'trialDays' => $subscription->getTrialDays(),
+            'trialDays' => (int) $plan->getFreeTrialDays(),
         ];
         $activeSubscription = [];
         if ($this->hasActivePayment($merchant, $config, $activeSubscription)) {
             try {
                 if (!empty($activeSubscription)) {
-                    $subscription->setStatus($activeSubscription['status']);
-                    $subscription->setTrialDays($activeSubscription['trialDays']);
-                    $subscription->setCreatedAt(date('Y-m-d H:i:s', strtotime($activeSubscription['createdAt'])));
-                    // extract the subscription ID from the global id
-                    $subscriptionId = (int)str_replace('gid://shopify/AppSubscription/', '', $activeSubscription['id']);
-                    $subscription->setSubscriptionId($subscriptionId . "");
-                    $subscription->save();
+                    Subscription::ensureSubscription($merchant, $activeSubscription);
                 }
             } catch (\Throwable $e) {
-                self::getLogger()->debug($e->getMessage());
+                \Xpify\Core\Model\Logger::getLogger('billing.ensure_db_subscription.log')->debug($e->__toString());
             }
             throw new AlreadySubscribedException(__("The merchant already has an active payment"), null, self::E_ALREADY_SUBSCRIBED);
         }
         $appUid = Utils::idToUid($merchant->getAppId() . "");
         $pUid = Utils::idToUid($plan->getId() . "");
-        $sign = \Xpify\Core\Helper\Utils::createHmac([
-            'data' => [
-                '_mid' => $merchant->getId(),
-                '_i' => $appUid,
-                '_pid' => $pUid,
-                '_interval' => $subscription->getInterval(),
-            ],
+        $payload = [
+            '_mid' => $merchant->getId(),
+            '_i' => $appUid,
+            '_pid' => $pUid,
+            '_interval' => $interval,
+        ];
+        $discounts = $plan->getAppliedDiscounts();
+        /** @var AppliedDiscount $first */
+        $first = $discounts ? reset($discounts) : null;
+        if (!empty($first['applied_coupon'])) {
+            $payload['_cp'] = $first['applied_coupon'];
+
+            $config['discount'] = [];
+
+            if (!empty($first['duration_limit_in_intervals'])) {
+                $config['discount']['durationLimitInIntervals'] = $first['duration_limit_in_intervals'];
+            }
+            if ($first['discount_type'] === 'UNKNOWN') {
+                self::getLogger()->debug(
+                    'merchant = ' . $merchant->getShopName() . ', plan = ' . $plan->getName() . ', unknown discount type'
+                );
+                throw new ShopifyBillingException(__("Error while billing the store. Please contact us!")->render());
+            }
+            if ($first['discount_type'] === 'FIXED_AMOUNT') {
+                $config['discount']['value'] = [
+                    'amount' => $plan->getFinalIntervalAmount($interval),
+                ];
+            } else {
+                $config['discount']['value'] = [
+                    'percentage' => $first['discount_amount'] / 100.0,
+                ];
+            }
+        }
+
+        // sign
+        $payload['_sign'] = \Xpify\Core\Helper\Utils::createHmac([
+            'data' => $payload,
             'buildQuery' => true,
             'buildQueryWithJoin' => true,
         ], \Xpify\Core\Model\Constants::SYS_SECRET_KEY);
-        $config['return_url'] =
-            Context::$HOST_SCHEME . '://' .
-            Context::$HOST_NAME .
-            '/xpify/billing/success' .
-            "/_i/{$appUid}" .
-            "/_mid/{$merchant->getId()}" .
-            "/_pid/$pUid" .
-            "/_sign/$sign" .
-            "?_interval={$subscription->getInterval()}";
+
+        // build return url
+        $returnUrlBase = Context::$HOST_SCHEME . '://' . Context::$HOST_NAME . '/xpify/billing/success';
+        $path = Utils::buildMagentoParamsPath(array_diff_key($payload, ['_interval' => true]));
+        $config['return_url'] = $returnUrlBase . $path . '?_interval=' . rawurlencode($interval);
+
+        /** @var AppSubscription $createdRemoteSub */
         [$billingUrl, $createdRemoteSub] = $this->requestPayment($merchant, $config);
         try {
             if ($createdRemoteSub) {
+                $subscription = Subscription::newSubscription();
+                $subscription->setShop($merchant->getShopName());
+                $subscription->setPlanId((int) $plan->getId());
+                $subscription->setAppId((int) $merchant->getAppId());
+                $subscription->setCode($plan->getCode());
+                $subscription->setDescription($plan->getDescription());
+                $subscription->setName($plan->getName());
+                $subscription->setPrice($plan->getIntervalAmount($interval));
+                $subscription->setTrialDays((int) $plan->getFreeTrialDays());
+                $subscription->setInterval($interval);
                 $subscription->setStatus($createdRemoteSub['status']);
-                $subscription->setSubscriptionId(str_replace('gid://shopify/AppSubscription/', '', $createdRemoteSub['id']));
+                $subscription->setSubscriptionId(str_replace(\Xpify\Core\Model\Constants::SHOPIFY_SUBSCRIPTION_GLOBAL_ID_PREFIX, '', $createdRemoteSub['id']));
                 $subscription->setCreatedAt(date('Y-m-d H:i:s', strtotime($createdRemoteSub['createdAt'])));
-                $discount = $createdRemoteSub['lineItems'][0]['plan']['pricingDetails']['discount'] ?? null;
+                $discount = $createdRemoteSub['lineItems'][0]['plan']['pricingDetails']['discount'] ?? [];
+                if (!empty($first['applied_coupon'])) {
+                    $discount['coupon'] = $first['applied_coupon'];
+                }
                 $subscription->setAppliedDiscount($discount);
                 $subscription->setConfirmationUrl($billingUrl);
                 $subscription->save();
+
+                try {
+                    /** @var ICoupon $couponObj */
+                    $couponObj = $first['coupon'];
+                    if ($appliedCouponId = $couponObj->getId()) {
+                        $couponUsage = \Magento\Framework\App\ObjectManager::getInstance()->create(ICouponUsage::class);
+                        $couponUsage->loadUnique($appliedCouponId, $merchant->getShop());
+
+                        if ($couponUsage->getId()) {
+                            $couponUsage->setTimesUsed($couponUsage->getTimesUsed() + 1);
+                        } else {
+                            $couponUsage->setCouponId($appliedCouponId);
+                            $couponUsage->setTimesUsed(1);
+                            $couponUsage->setMerchantDomain($merchant->getShop());
+                        }
+                        $couponObj->setTimesUsed($couponObj->getTimesUsed() + 1);
+                        $couponUsage->save();
+                        $couponObj->save();
+                    }
+                } catch (\Throwable $e) {
+                    if ($subscription->getId()) {
+                        $subscription->delete();
+                    }
+                }
             }
         } catch (ShopifyBillingException $e) {
             throw $e;
         } catch (\Throwable $e) {
-            self::getLogger()->debug("{$e->getMessage()} | {$e->getTraceAsString()}");
-            throw new ShopifyBillingException("Error while billing the store. Please contact us!");
+            self::getLogger()->debug($e->__toString());
+            throw new ShopifyBillingException(__("Error while billing the store. Please contact us!")->render());
         }
         return $billingUrl;
     }
@@ -171,7 +239,7 @@ class Billing
      * Request a payment for the given merchant.
      *
      * @param IMerchant $merchant The current merchant to check
-     * @param array   $config  Associative array that accepts keys:
+     * @param RecurringPaymentConfig   $config  Associative array that accepts keys:
      *                         - "chargeName": string, the name of the charge
      *                         - "amount": float
      *                         - "currencyCode": string
@@ -209,7 +277,7 @@ class Billing
      * Check if the given merchant has an active payment
      *
      * @param IMerchant $merchant
-     * @param array $config
+     * @param RecurringPaymentConfig $config
      * @param array|null $remoteData
      * @return bool
      * @throws ShopifyBillingException
@@ -253,13 +321,20 @@ class Billing
      * Request a recurring payment for the given merchant
      *
      * @param IMerchant $merchant
-     * @param array $config
+     * @param RecurringPaymentConfig $config
      * @param string $returnUrl
      * @return array
      * @throws ShopifyBillingException|NoSuchEntityException
      */
     private static function requestRecurringPayment(IMerchant $merchant, array $config, string $returnUrl): array
     {
+        $appRecurringPricingDetails = [
+            "interval" => $config["interval"],
+            "price" => ["amount" => $config["amount"], "currencyCode" => $config["currencyCode"]],
+        ];
+        if (!empty($config['discount'])) {
+            $appRecurringPricingDetails['discount'] = $config['discount'];
+        }
         return self::queryOrException(
             $merchant,
             [
@@ -268,10 +343,7 @@ class Billing
                     "name" => $config["chargeName"],
                     "lineItems" => [
                         "plan" => [
-                            "appRecurringPricingDetails" => [
-                                "interval" => $config["interval"],
-                                "price" => ["amount" => $config["amount"], "currencyCode" => $config["currencyCode"]],
-                            ],
+                            "appRecurringPricingDetails" => $appRecurringPricingDetails,
                         ],
                     ],
                     "returnUrl" => $returnUrl,
@@ -359,44 +431,39 @@ class Billing
      * Check merchant has subscription
      *
      * @param IMerchant $merchant
-     * @param array $config
+     * @param RecurringPaymentConfig $config
      * @param array|null $activeSubscription - This will be filled with the active subscription details if found
      * @return bool
      * @throws ShopifyBillingException|NoSuchEntityException
      */
     public static function hasSubscription(IMerchant $merchant, array $config, array &$activeSubscription = null): bool
     {
-        $responseBody = self::queryOrException($merchant, self::RECURRING_PURCHASES_QUERY);
-        $subscriptions = $responseBody["data"]["currentAppInstallation"]["activeSubscriptions"];
+        $remoteActiveSub = self::queryOrException($merchant, self::RECURRING_PURCHASES_QUERY)["data"]["currentAppInstallation"]["activeSubscriptions"][0] ?? null;
 
-        foreach ($subscriptions as $subscription) {
-            $returnUrl = $subscription["returnUrl"];
-            $queries = parse_url($returnUrl, PHP_URL_QUERY);
-            $intervalEqual = true;
-            if ($queries) {
-                // parse the queries to get the interval, the queries are in the format like this: _i=1&_mid=1&_interval=1
-                $queries = explode('&', $queries);
-                // try to parse the query to key => value from format key=value
-                $queries = array_reduce($queries, function ($carry, $item) {
-                    $item = explode('=', $item);
-                    $carry[$item[0]] = $item[1];
-                    return $carry;
-                }, []);
-                if (!empty($queries['_interval'])) {
-                    $intervalEqual = $queries['_interval'] === $config["interval"];
-                }
+        /** @var AppSubscription $remoteSub */
+        $remoteSub = $remoteActiveSub;
+        unset($remoteActiveSub);
+        // Check xem co subscription active trên Shopify không
+        if (!$remoteSub) {
+            // Neu khong co thi check xem co subscription frozen tren shopify khong
+            $remoteFrozenSub = self::queryOrException($merchant, self::LATEST_SUBSCRIPTION_QUERY)["data"]["currentAppInstallation"]['allSubscriptions']['nodes'][0] ?? null;
+            if (!$remoteFrozenSub || $remoteFrozenSub['status'] !== 'FROZEN') {
+                return false;
             }
+            $remoteSub = $remoteFrozenSub;
+            unset($remoteFrozenSub);
+        }
 
-            if (
-                $intervalEqual &&
-                $subscription["name"] === $config["chargeName"] &&
-                (!self::getCurrentApp()->isProd() || !$subscription["test"])
-            ) {
-                if ($activeSubscription !== null) {
-                    $activeSubscription = $subscription;
-                }
-                return true;
+        $returnUrlRequest = \Xpify\Core\Helper\Utils::parseRequest($remoteSub['returnUrl']);
+        $intervalEqual = $config["interval"] === $returnUrlRequest->getParam('_interval');
+
+        if ($intervalEqual && $remoteSub["name"] === $config["chargeName"]
+//            && (!self::getCurrentApp()->isProd() || !$remoteSub["test"])
+        ) {
+            if ($activeSubscription !== null) {
+                $activeSubscription = $remoteSub;
             }
+            return true;
         }
 
         return false;
@@ -483,15 +550,48 @@ class Billing
         }
     }
 
-    private const RECURRING_PURCHASES_QUERY = <<<'QUERY'
-    query appSubscription {
-        currentAppInstallation {
-            activeSubscriptions {
-                name test returnUrl id status trialDays createdAt
+    private const APP_SUBSCRIPTION_FRAGMENT = <<<'QUERY'
+fragment AppSubscriptionFragment on AppSubscription {
+    id name status test returnUrl trialDays createdAt
+    lineItems {
+        plan {
+            pricingDetails {
+                ... on AppRecurringPricing {
+                    interval price { amount }
+                    discount {
+                        durationLimitInIntervals priceAfterDiscount { amount }
+                        value {
+                            ... on AppSubscriptionDiscountAmount { amount { amount } }
+                            ... on AppSubscriptionDiscountPercentage { percentage }
+                        }
+                    }
+                }
             }
         }
     }
-    QUERY;
+}
+QUERY;
+
+    private const LATEST_SUBSCRIPTION_QUERY = <<<'QUERY'
+query LatestSubscription {
+    currentAppInstallation{
+        allSubscriptions(first: 1, sortKey: CREATED_AT, reverse: true){
+            nodes{ ...AppSubscriptionFragment }
+        }
+    }
+}
+QUERY. "\n" .
+    self::APP_SUBSCRIPTION_FRAGMENT;
+
+    private const RECURRING_PURCHASES_QUERY = <<<'QUERY'
+query appSubscription {
+    currentAppInstallation {
+        activeSubscriptions { ...AppSubscriptionFragment }
+    }
+}
+QUERY . "\n" .
+    self::APP_SUBSCRIPTION_FRAGMENT;
+
     private const ONE_TIME_PURCHASES_QUERY = <<<'QUERY'
     query appPurchases($endCursor: String) {
         currentAppInstallation {
@@ -509,46 +609,28 @@ class Billing
     }
     QUERY;
     private const RECURRING_PURCHASE_MUTATION = <<<'QUERY'
-    mutation createPaymentMutation(
-        $name: String!
-        $lineItems: [AppSubscriptionLineItemInput!]!
-        $returnUrl: URL!
-        $test: Boolean
-        $trialDays: Int
+mutation createPaymentMutation(
+    $name: String!
+    $lineItems: [AppSubscriptionLineItemInput!]!
+    $returnUrl: URL!
+    $test: Boolean
+    $trialDays: Int
+) {
+    appSubscriptionCreate(
+        name: $name
+        lineItems: $lineItems
+        returnUrl: $returnUrl
+        test: $test
+        trialDays: $trialDays
     ) {
-        appSubscriptionCreate(
-            name: $name
-            lineItems: $lineItems
-            returnUrl: $returnUrl
-            test: $test
-            trialDays: $trialDays
-        ) {
-            appSubscription {
-                id status createdAt
-                lineItems {
-                    plan {
-                        pricingDetails {
-                            ... on AppRecurringPricing {
-                                discount {
-                                    durationLimitInIntervals remainingDurationInIntervals
-                                    priceAfterDiscount {amount}
-                                    value {
-                                        ... on AppSubscriptionDiscountAmount { amount { amount } }
-                                        ... on AppSubscriptionDiscountPercentage { percentage }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            confirmationUrl
-            userErrors {
-                field, message
-            }
-        }
+        appSubscription { ...AppSubscriptionFragment }
+        confirmationUrl
+        userErrors { field, message }
     }
-    QUERY;
+}
+QUERY . "\n" .
+    self::APP_SUBSCRIPTION_FRAGMENT;
+
     private const ONE_TIME_PURCHASE_MUTATION = <<<'QUERY'
     mutation createPaymentMutation(
         $name: String!
